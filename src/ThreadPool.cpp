@@ -2,6 +2,7 @@
 // Created by 许斌 on 2021/10/26.
 //
 
+#include <iostream>
 #include "ThreadPool/ThreadPool.h"
 using namespace xb;
 
@@ -85,7 +86,7 @@ void* ThreadPool::threadfun(void* arg)
         ThreadPool::Task task = pool->TakeTask();
         if (!task)
         {
-            printf("thread %lu will exit\n", tid);
+            std::cout << "thread " << tid << " will exit" << std::endl;
             break;
         }
         task();
