@@ -17,31 +17,37 @@
 #include <unordered_map>
 #include "ThreadPool/ThreadPool.h"
 
-namespace xb {
-enum ConnStatus {
+namespace xb
+{
+enum ConnStatus
+{
     SockError = -5,
     BindError = -4,
     ListenError = -3,
 };
 
-enum HttpStatus {
+enum HttpStatus
+{
     MethodError = -2,
     VersionError = -1,
     HttpSuccess = 0
 };
 
-enum FileType{
+enum FileType
+{
     Unknown = -1,
     Photo = 1,
     Html = 2,
 };
 
-struct File {
+struct File
+{
     FileType type;
     std::string file_exten;
 };
 
-class MyHttp {
+class MyHttp
+{
 private:
     std::string root_;
     std::string htaccess_path_;

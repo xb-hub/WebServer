@@ -9,14 +9,16 @@
 #include <vector>
 #include <list>
 
-namespace xb {
+namespace xb
+{
 enum QueueStatus
 {
     Full = -1,
     Norm = 1
 };
 
-class ThreadPool {
+class ThreadPool
+{
 public:
     typedef std::function<void()> Task;
 private:
