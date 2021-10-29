@@ -28,5 +28,6 @@ int main(int argc, char* argv[])
         http = new MyHttp(atoi(argv[1]), argv[2], false, 0);
     }
     http->start_up();
+    delete http;
     return 0;
 }

@@ -27,6 +27,8 @@ ThreadPool::~ThreadPool()
     if(!is_running)
         return;
     is_running = false;
+    if(instance)
+        delete instance;
     pthread_cond_broadcast(&pool_cond);
 
     for (int i = 0; i < MAX_THREAD_NUM; i++)
