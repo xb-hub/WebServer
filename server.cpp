@@ -7,11 +7,13 @@ using namespace xb;
 
 int main(int argc, char* argv[])
 {
+    // 判断参数个数是否符合要求
     if(argc < 4)
     {
         std::cout << "Usage: Paramter!" << std::endl;
         return -1;
     }
+    // 创建MyHttp实例
     MyHttp* http;
     if(!strcasecmp(argv[3], "pool"))
     {
@@ -27,7 +29,8 @@ int main(int argc, char* argv[])
 #endif
         http = new MyHttp(atoi(argv[1]), argv[2], false, 0);
     }
+    // 启动服务器
     http->start_up();
-    delete http;
+//    delete http;
     return 0;
 }

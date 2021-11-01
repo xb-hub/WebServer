@@ -3,13 +3,14 @@
 //
 #define _DEBUG_MESSAGE_
 //#define _DEBUG_TYPE_
-//#define _DEBUG_HEAD_
+#define _DEBUG_HEAD_
 
 #include <thread>
 #include "MyHttp/MyHttp.h"
 using namespace xb;
 
-MyHttp::MyHttp(const int port, const std::string htdocs, bool flag, int num) :
+// 构造函数初始化
+MyHttp::MyHttp(const int port, const std::string& htdocs, bool flag, int num) :
         serverfd_(-1),
         clientfd_(-1),
         root_(htdocs),  // "/Users/xubin/Desktop/MyHttp/htdocs"
@@ -33,11 +34,14 @@ MyHttp::MyHttp(const int port, const std::string htdocs, bool flag, int num) :
 //    }
 }
 
+// 析构函数
 MyHttp::~MyHttp()
 {
+    if(pool)    pool->stop();
     close(serverfd_);
 }
 
+// 启动服务器
 int MyHttp::start_up()
 {
     if((serverfd_ = socket(PF_INET, SOCK_STREAM, 0)) < 0)
@@ -64,17 +68,18 @@ int MyHttp::start_up()
 //            close(clientfd_);
 //            continue;
 //        }
-        if(use_pool_)
+        if(use_pool_)   // 使用线程池
             pool->AddTask(std::bind(&MyHttp::accept_request, this));
-        else
+        else    // 每次连接创建一个新线程
         {
             std::thread t(&MyHttp::accept_request, this);
-            t.detach();
+            t.join();
         }
     }
 }
 
-std::string MyHttp::my_getline() const
+// 获取http报文的一行
+std::string MyHttp::my_getline()
 {
     int index = 0;
     char c = '\0';
@@ -98,6 +103,8 @@ std::string MyHttp::my_getline() const
     }
     return line;
 }
+
+// 处理http报文，获取method，url，version
 int MyHttp::accept_request()
 {
     std::string head;
@@ -159,6 +166,7 @@ int MyHttp::accept_request()
     return HttpSuccess;
 }
 
+// 添加http响应报文头并区分文件类型
 void MyHttp::headers(File file_t) const
 {
     std::string response = "HTTP/1.1 200 OK\r\n";
@@ -181,6 +189,7 @@ void MyHttp::headers(File file_t) const
     send(clientfd_, response.c_str(), response.size(), 0);
 }
 
+// 根据root路径和url路径寻找文件并通过套接字传输到客户端
 void MyHttp::search_file(const std::string& path)
 {
     int len = 1;
@@ -209,7 +218,7 @@ void MyHttp::search_file(const std::string& path)
             while (!file.eof()) {
                 std::getline(file, tmp);
                 file_content += tmp;
-                file_content += "\n";
+                file_content += "\r\n";
             }
 #ifdef _DEBUG_MESSAGE_
             std::cout << file_content << std::endl;
@@ -223,7 +232,7 @@ void MyHttp::search_file(const std::string& path)
             file.seekg(0, file.end);
             int length = file.tellg();
             file.seekg(0, file.beg);
-            char * buffer = new char[length];
+            char* buffer = new char[length];
             file.read(buffer, length);
             send(clientfd_, buffer, length, 0);
             break;
@@ -237,36 +246,49 @@ void MyHttp::search_file(const std::string& path)
     file.close();
 }
 
+// 404错误
 void MyHttp::not_found()
 {
-    std::ifstream file("/Users/xubin/Desktop/MyHttp/htdocs/404.html");
-    std::string response = "HTTP/1.1 404 Not Found\r\n";
-    response += "\r\n";
-    std::string tmp;
-    while (!file.eof())
-    {
-        std::getline(file, tmp);
-        response += tmp;
-        response += "\n";
-    }
-    send(clientfd_, response.c_str(), response.size(), 0);
-    file.close();
+#ifdef _DEBUG_MESSAGE_
+    std::cout << "400 not found" << std::endl;
+#endif
+//    std::ifstream file("/Users/xubin/Desktop/MyHttp/htdocs/404.html");
+//    std::string response = "HTTP/1.1 404 Not Found\r\n";
+//    response += "Content-Type: text/html\r\n";
+//    response += "\r\n";
+//    std::string tmp;
+//    while (!file.eof())
+//    {
+//        std::getline(file, tmp);
+//        response += tmp;
+//        response += "\r\n";
+//    }
+//#ifdef _DEBUG_MESSAGE_
+//    std::cout << response << std::endl;
+//#endif
+//    send(clientfd_, response.c_str(), response.size(), 0);
+//    file.close();
 }
 
+// 403错误
 void MyHttp::forbidden()
 {
-    std::ifstream file("/Users/xubin/Desktop/MyHttp/htdocs/403.html");
-    std::string response = "HTTP/1.1 403 Forbidden\r\n";
-    response += "\r\n";
-    std::string tmp;
-    while (!file.eof())
-    {
-        std::getline(file, tmp);
-        response += tmp;
-        response += "\n";
-    }
-    send(clientfd_, response.c_str(), response.size(), 0);
-    file.close();
+#ifdef _DEBUG_MESSAGE_
+    std::cout << "403 Forbidden" << std::endl;
+#endif
+//    std::ifstream file("/Users/xubin/Desktop/MyHttp/htdocs/403.html");
+//    std::string response = "HTTP/1.1 403 Forbidden\r\n";
+//    response += "Content-Type: text/html \r\n";
+//    response += "\r\n";
+//    std::string tmp;
+//    while (!file.eof())
+//    {
+//        std::getline(file, tmp);
+//        response += tmp;
+//        response += "\r\n";
+//    }
+//    send(clientfd_, response.c_str(), response.size(), 0);
+//    file.close();
 }
 
 void MyHttp::client_error()
@@ -283,6 +305,7 @@ void MyHttp::server_error()
 #endif
 }
 
+// 判断请求文件类型
 File MyHttp::FileType(const std::string &path)
 {
     size_t pos= path.rfind('.');
