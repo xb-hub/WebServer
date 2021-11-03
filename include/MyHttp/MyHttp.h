@@ -83,10 +83,10 @@ public:
     File FileType(const std::string& path);
 
     // 错误页面返回
-    void not_found();
-    void client_error();
-    void server_error();
-    void forbidden();
+    void not_found(int clientfd);
+    void client_error(int clientfd);
+    void server_error(int clientfd);
+    void forbidden(int clientfd);
 
 };
 }

@@ -123,7 +123,7 @@ int MyHttp::accept_request(int clientfd)
     int index = 0;
     while (index < head.size() && !isspace(head[index]))
         method += head[index++];
-    if(strcasecmp(method.c_str(), "GET") != 0) return MethodError;
+//    if(strcasecmp(method.c_str(), "GET") != 0) return MethodError;
     while (isspace(head[index]))  index++;
     while (index < head.size() && !isspace(head[index]))
         url += head[index++];
@@ -133,23 +133,21 @@ int MyHttp::accept_request(int clientfd)
     if(strcasecmp(version.c_str(), "HTTP/1.1") != 0)   return VersionError;
     std::string path = root_ + url;
     if(path.back() == '/')
-        path += "index.html";
+        path += strcasecmp(method.c_str(), "GET") ? "index.php" : "index.html";
 
     int len = 1;
     std::string message;
     struct stat st = {0};
-    if(stat(path.c_str(), &st) == -1)
+    while (len > 0 && message != "\n")
     {
-        while (len > 0 && message != "\n")
-        {
-            message = my_getline(clientfd);
+        message = my_getline(clientfd);
 #ifdef _DEBUG_MESSAGE_
-            std::cout << message << std::endl;
+        std::cout << message << std::endl;
 #endif
-            len = message.size();
-        }
-        not_found();
+        len = message.size();
     }
+    if(stat(path.c_str(), &st) == -1)
+        not_found(clientfd);
     else
     {
         if(S_ISDIR(st.st_mode))     path += "/index.html";    // 如果路径所指是目录文件
@@ -191,14 +189,6 @@ void MyHttp::search_file(const std::string& path, int clientfd)
     int len = 1;
     std::string message;
     std::string file_content;
-    while (len > 0 && message != "\n")
-    {
-        message = my_getline(clientfd);
-#ifdef _DEBUG_MESSAGE_
-        std::cout << message;
-#endif
-        len = message.size();
-    }
     File file_t = FileType(path);
 #ifdef _DEBUG_TYPE_
     std::cout << file_t.type << std::endl;
@@ -244,7 +234,7 @@ void MyHttp::search_file(const std::string& path, int clientfd)
 }
 
 // 404错误
-void MyHttp::not_found()
+void MyHttp::not_found(int clientfd)
 {
 #ifdef _DEBUG_MESSAGE_
     std::cout << "400 not found" << std::endl;
@@ -268,7 +258,7 @@ void MyHttp::not_found()
 }
 
 // 403错误
-void MyHttp::forbidden()
+void MyHttp::forbidden(int clientfd)
 {
 #ifdef _DEBUG_MESSAGE_
     std::cout << "403 Forbidden" << std::endl;
@@ -288,14 +278,14 @@ void MyHttp::forbidden()
 //    file.close();
 }
 
-void MyHttp::client_error()
+void MyHttp::client_error(int clientfd)
 {
 #ifdef _DEBUG_MESSAGE_
     std::cout << "400 client error" << std::endl;
 #endif
 }
 
-void MyHttp::server_error()
+void MyHttp::server_error(int clientfd)
 {
 #ifdef _DEBUG_MESSAGE_
     std::cout << "500 server error" << std::endl;
