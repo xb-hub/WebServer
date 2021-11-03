@@ -1,7 +1,7 @@
 //
 // Created by 许斌 on 2021/10/26.
 //
-
+//#define _DEBUG_
 #include <iostream>
 #include "ThreadPool/ThreadPool.h"
 using namespace xb;
@@ -103,7 +103,9 @@ void* ThreadPool::threadfun(void* arg)
             std::cout << "thread " << tid << " will exit" << std::endl;
             break;
         }
-        std::cout << "task: " << tid << std::endl;
+#ifdef _DEBUG_
+        std::cout << "task: " << pthread_self() << std::endl;
+#endif
         task(); // 执行任务
     }
     return nullptr;

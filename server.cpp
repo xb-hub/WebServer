@@ -31,6 +31,6 @@ int main(int argc, char* argv[])
     }
     // 启动服务器
     http->start_up();
-//    delete http;
+    delete http;
     return 0;
 }

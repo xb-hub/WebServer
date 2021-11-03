@@ -6,8 +6,9 @@
 #define THREADPOOL_MYHTTP_H
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <string.h>
 #include <cstdlib>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -39,8 +40,9 @@ enum HttpStatus
 enum FileType
 {
     Unknown = -1,
-    Photo = 1,
-    Html = 2,
+    Image = 1,
+    Text = 2,
+    Application = 3
 };
 
 struct File
@@ -52,11 +54,10 @@ struct File
 class MyHttp
 {
 private:
-    std::string htaccess_path_;
+//    std::string htaccess_path_;
     std::string root_;  // 服务器文件根目录
     int thread_num_;    // 线程池线程数
     int serverfd_;      // 服务器套接字
-    int clientfd_;      // 客户端套接字
     int port_;          // 端口
 //    std::unordered_map<std::string, bool> deny;
 //    std::unordered_map<std::string, bool> allow;
@@ -69,14 +70,16 @@ protected:
     const int MAX_BUF_SIZE; // 缓冲区最大空间
 
 public:
+    pthread_mutex_t buf_lock;
+
     MyHttp(const int port, const std::string& htdocs, bool flag, int num);
     ~MyHttp();
 
     int start_up();
-    std::string my_getline();
-    int accept_request();
-    void search_file(const std::string& path);
-    void headers(File file_t) const;
+    std::string my_getline(int clientfd);
+    int accept_request(int clientfd);
+    void search_file(const std::string& path, int clientfd);
+    void headers(File file_t, int clientfd) const;
     File FileType(const std::string& path);
 
     // 错误页面返回
