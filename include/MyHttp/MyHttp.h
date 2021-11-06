@@ -82,11 +82,14 @@ public:
     void headers(File file_t, int clientfd) const;
     File FileType(const std::string& path);
 
+    void execute_cgi(int clientfd, const std::string& path, const std::string& method, const std::string& paramter);
+
     // 错误页面返回
     void not_found(int clientfd);
     void client_error(int clientfd);
     void server_error(int clientfd);
     void forbidden(int clientfd);
+    void bad_request(int clientfd);
 
 };
 }

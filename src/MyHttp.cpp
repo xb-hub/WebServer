@@ -44,8 +44,15 @@ MyHttp::~MyHttp()
 // 启动服务器
 int MyHttp::start_up()
 {
-    if((serverfd_ = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    int on = 1;
+    if((serverfd_ = socket(PF_INET, SOCK_STREAM, 0)) < 0)   // 创建套接字
         return SockError;
+    setsockopt(serverfd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    struct timeval time;
+    time.tv_sec = 5;
+    time.tv_usec = 0;
+    setsockopt(serverfd_, SOL_SOCKET, SO_RCVTIMEO, &time, sizeof(struct timeval));
+
 
     struct sockaddr_in addr = {0};
     memset(&addr, 0, sizeof(addr));
@@ -134,20 +141,24 @@ int MyHttp::accept_request(int clientfd)
     std::string path = root_ + url;
     if(path.back() == '/')
         path += strcasecmp(method.c_str(), "GET") ? "index.php" : "index.html";
-
+#ifdef _DEBUG_MESSAGE_
+    std::cout << path << std::endl;
+#endif
     int len = 1;
     std::string message;
     struct stat st = {0};
-    while (len > 0 && message != "\n")
-    {
-        message = my_getline(clientfd);
-#ifdef _DEBUG_MESSAGE_
-        std::cout << message << std::endl;
-#endif
-        len = message.size();
-    }
     if(stat(path.c_str(), &st) == -1)
+    {
+        while (len > 0 && message != "\n")
+        {
+            message = my_getline(clientfd);
+#ifdef _DEBUG_MESSAGE_
+            std::cout << message << std::endl;
+#endif
+            len = message.size();
+        }
         not_found(clientfd);
+    }
     else
     {
         if(S_ISDIR(st.st_mode))     path += "/index.html";    // 如果路径所指是目录文件
@@ -155,6 +166,44 @@ int MyHttp::accept_request(int clientfd)
     }
     close(clientfd);
     return HttpSuccess;
+}
+
+void MyHttp::execute_cgi(int clientfd, const std::string& path, const std::string& method, const std::string& paramter)
+{
+    int len = 1;
+    std::string message;
+    int content_length = -1;
+    if(strcasecmp(method.c_str(), "GET") == 0)
+    {
+        while (len > 0 && message != "\n")
+        {
+            message = my_getline(clientfd);
+#ifdef _DEBUG_MESSAGE_
+            std::cout << message << std::endl;
+#endif
+            len = message.size();
+        }
+    }
+    else if(strcasecmp(method.c_str(), "POST") == 0)
+    {
+        message = my_getline(clientfd);
+        len = message.size();
+        while (len > 0 && message != "\n")
+        {
+            if(strcasecmp(message.substr(0, 15).c_str(), "Content-Length:"))
+                content_length = stoi(message.substr(16, message.size() - 16));
+
+            message = my_getline(clientfd);
+#ifdef _DEBUG_MESSAGE_
+            std::cout << message << std::endl;
+#endif
+            len = message.size();
+        }
+        if (content_length == -1) {
+            bad_request(clientfd);
+            return;
+        }
+    }
 }
 
 // 添加http响应报文头并区分文件类型
@@ -189,6 +238,14 @@ void MyHttp::search_file(const std::string& path, int clientfd)
     int len = 1;
     std::string message;
     std::string file_content;
+    while (len > 0 && message != "\n")
+    {
+        message = my_getline(clientfd);
+#ifdef _DEBUG_MESSAGE_
+        std::cout << message << std::endl;
+#endif
+        len = message.size();
+    }
     File file_t = FileType(path);
 #ifdef _DEBUG_TYPE_
     std::cout << file_t.type << std::endl;
@@ -255,6 +312,11 @@ void MyHttp::not_found(int clientfd)
 //#endif
 //    send(clientfd_, response.c_str(), response.size(), 0);
 //    file.close();
+}
+
+void MyHttp::bad_request(int clientfd)
+{
+
 }
 
 // 403错误
