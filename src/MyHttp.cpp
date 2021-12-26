@@ -2,9 +2,9 @@
 // Created by 许斌 on 2021/10/27.
 //
 //#define _DEBUG_
-#define _DEBUG_MESSAGE_
+// #define _DEBUG_MESSAGE_
 //#define _DEBUG_TYPE_
-#define _DEBUG_HEAD_
+// #define _DEBUG_HEAD_
 
 #include <thread>
 #include "MyHttp/MyHttp.h"

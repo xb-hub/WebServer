@@ -3,10 +3,11 @@
 //
 //#define _DEBUG_
 #include <iostream>
+#include <memory>
 #include "ThreadPool/ThreadPool.h"
 using namespace xb;
 
-ThreadPool* ThreadPool::instance = nullptr;
+std::shared_ptr<ThreadPool> ThreadPool::instance = nullptr;
 pthread_mutex_t ThreadPool::singleton_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // 构造函数初始化
@@ -28,8 +29,6 @@ ThreadPool::ThreadPool(const int thread_num, const int task_num) :
 ThreadPool::~ThreadPool()
 {
     stop();
-//    if(instance)
-//        delete instance;
 }
 
 void ThreadPool::stop()
@@ -45,13 +44,14 @@ void ThreadPool::stop()
 }
 
 // 单例模式获取instance
-ThreadPool* ThreadPool::getInstance(const int thread_num,const int task_num)
+std::shared_ptr<ThreadPool> ThreadPool::getInstance(const int thread_num,const int task_num)
 {
     if(instance == nullptr)
     {
         pthread_mutex_lock(&singleton_lock);
         if(instance == nullptr)
-            instance = new ThreadPool(thread_num, task_num);
+            // instance = new ThreadPool(thread_num, task_num);
+            instance = std::shared_ptr<ThreadPool>(new ThreadPool(thread_num, task_num));
         pthread_mutex_unlock(&singleton_lock);
     }
     return instance;

@@ -14,23 +14,22 @@ int main(int argc, char* argv[])
         return -1;
     }
     // 创建MyHttp实例
-    MyHttp* http;
+    std::shared_ptr<MyHttp> http;
     if(!strcasecmp(argv[3], "pool"))
     {
 #ifdef _DEBUG_POOL_
         std::cout << "using ThreadPool!" << std::endl;
 #endif
-        http = new MyHttp(atoi(argv[1]), argv[2], true, atoi(argv[4]));
+        http = std::shared_ptr<MyHttp>(new MyHttp(atoi(argv[1]), argv[2], true, atoi(argv[4])));
     }
     else
     {
 #ifdef _DEBUG_POOL_
         std::cout << "don't use ThreadPool!" << std::endl;
 #endif
-        http = new MyHttp(atoi(argv[1]), argv[2], false, 0);
+        http = std::shared_ptr<MyHttp>(new MyHttp(atoi(argv[1]), argv[2], false, 0));
     }
     // 启动服务器
     http->start_up();
-    delete http;
     return 0;
 }

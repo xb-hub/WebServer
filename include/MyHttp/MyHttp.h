@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unordered_map>
+#include <memory>
 #include "ThreadPool/ThreadPool.h"
 
 namespace xb
@@ -62,7 +63,8 @@ private:
 //    std::unordered_map<std::string, bool> deny;
 //    std::unordered_map<std::string, bool> allow;
 
-    ThreadPool* pool;   // 线程池实例
+    // ThreadPool* pool;   // 线程池实例
+    std::shared_ptr<ThreadPool> pool;
 
     bool use_pool_;     // 是否使用线程池
 

@@ -23,7 +23,7 @@ class ThreadPool
 public:
     typedef std::function<void()> Task; // 任务类型
 private:
-    static ThreadPool* instance;        // 单例模式实例
+    static std::shared_ptr<ThreadPool> instance;        // 单例模式实例
 
     // 互斥锁和条件变量
     pthread_mutex_t pool_lock;
@@ -36,17 +36,18 @@ private:
 
 private:
     ThreadPool(const int thread_num, const int task_num);
-    ~ThreadPool();
-    ThreadPool(const ThreadPool&);
-    ThreadPool& operator=(const ThreadPool&);
 
 protected:
     const int MAX_THREAD_NUM;           // 线程池最大线程数
     const int MAX_TASK_NUM;             // 任务队列最大任务数
 
 public:
+    ~ThreadPool();
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
+
     bool is_running;
-    static ThreadPool* getInstance(const int thread_num,const int task_num);
+    static std::shared_ptr<ThreadPool> getInstance(const int thread_num,const int task_num);
     int AddTask(const Task& task);
     Task TakeTask();
     size_t getSize();
