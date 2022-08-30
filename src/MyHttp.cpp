@@ -7,7 +7,7 @@
 // #define _DEBUG_HEAD_
 
 #include <thread>
-#include "MyHttp/MyHttp.h"
+#include "MyHttp.h"
 using namespace xb;
 
 // 构造函数初始化
@@ -20,7 +20,7 @@ MyHttp::MyHttp(const int port, const std::string& htdocs, bool flag, int num) :
         use_pool_(flag),
         MAX_BUF_SIZE(1024)
 {
-    pool = ThreadPool::getInstance(thread_num_, 20);
+    pool = ThreadPoolMgr::getInstance();
 //    std::ifstream access(htaccess_path_, std::ios::in);
 //    std::string ip;
 //    while (!access.eof()) {
@@ -47,10 +47,14 @@ int MyHttp::start_up()
     int on = 1;
     if((serverfd_ = socket(PF_INET, SOCK_STREAM, 0)) < 0)   // 创建套接字
         return SockError;
+    /**
+     * setsockopt选项
+     * SO_REUSEADDR     避免TIME_WAIT状态
+     * SO_RCVBUF SO_SNDBUF  接收缓冲区和发送缓冲区大小
+     * SO_RCVLOWAT SO_SNDLOWAT  接收缓冲区和发送缓冲区低水位标志
+     */
     setsockopt(serverfd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-    struct timeval time;
-    time.tv_sec = 5;
-    time.tv_usec = 0;
+    struct timeval time = {5, 0};
     setsockopt(serverfd_, SOL_SOCKET, SO_RCVTIMEO, &time, sizeof(struct timeval));
 
 
@@ -207,7 +211,7 @@ void MyHttp::execute_cgi(int clientfd, const std::string& path, const std::strin
 }
 
 // 添加http响应报文头并区分文件类型
-void MyHttp::headers(File file_t, int clientfd) const
+void MyHttp::headers(const File& file_t, int clientfd) const
 {
     std::string response = "HTTP/1.1 200 OK\r\n";
     switch (file_t.type)

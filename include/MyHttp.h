@@ -17,7 +17,7 @@
 #include <arpa/inet.h>
 #include <unordered_map>
 #include <memory>
-#include "ThreadPool/ThreadPool.h"
+#include "ThreadPool.h"
 
 namespace xb
 {
@@ -26,7 +26,21 @@ enum ConnStatus
 {
     SockError = -5,
     BindError = -4,
-    ListenError = -3,
+    ListenError = -3
+};
+
+// 主机状态：分析请求行，分析头部字段
+enum CHECK_STATE
+{
+    CHECK_STATE_REQUESTLINE = 0,
+    CHECK_STATE_HEADER = 1
+};
+
+enum LINE_STATUS
+{
+    LINE_OK = 0,    // 读取到完整行
+    LINE_BAD = 1,   // 行出错
+    LINE_OPEN = 2   // 行不完整
 };
 
 // HTTP报文状态
@@ -81,7 +95,7 @@ public:
     std::string my_getline(int clientfd);
     int accept_request(int clientfd);
     void search_file(const std::string& path, int clientfd);
-    void headers(File file_t, int clientfd) const;
+    void headers(const File& file_t, int clientfd) const;
     File FileType(const std::string& path);
 
     void execute_cgi(int clientfd, const std::string& path, const std::string& method, const std::string& paramter);

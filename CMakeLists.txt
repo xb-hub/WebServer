@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 project(ThreadPool)
 
 find_package(Threads REQUIRED)
+find_package(yaml-cpp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
-include_directories(${Boost_INCLUDE_DIRS})
 
 include_directories(
         include
+        ${Boost_INCLUDE_DIRS}
+        ${YAML_CPP_INCLUDE_DIRS}
 )
 
 set(CMAKE_CXX_STANDARD 11)

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <unistd.h>
-#include "ThreadPool/ThreadPool.h"
+#include "ThreadPool.h"
 using namespace xb;
 
 class MyTask

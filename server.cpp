@@ -2,8 +2,9 @@
 // Created by 许斌 on 2021/10/27.
 //
 #define _DEBUG_POOL_
-#include "MyHttp/MyHttp.h"
+#include "MyHttp.h"
 #include <boost/program_options.hpp>
+#include <yaml-cpp/yaml.h>
 using namespace xb;
 
 int main(int argc, char* argv[])
@@ -24,7 +25,7 @@ int main(int argc, char* argv[])
              ("pool,y", boost::program_options::value<std::string>(&is_using)->default_value("pool"), "using thread pool")
              ("thread,t", boost::program_options::value<int>(&thread_number)->default_value(10), "thread number");
     boost::program_options::positional_options_description pdesc;
-    pdesc.add("input", 1);
+    pdesc.add("port", 1).add("root", 1).add("pool", 1).add("thread", 1);
 
     boost::program_options::variables_map vm;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv).options(desc).positional(pdesc).run(), vm);
@@ -35,9 +36,6 @@ int main(int argc, char* argv[])
         std::cout << desc << std::endl;
         return 1;
     }
-
-//
-//    boost::program_options::variables_map vm;
 
     // 创建MyHttp实例
     std::shared_ptr<MyHttp> http;
