@@ -12,6 +12,7 @@
 #include <vector>
 #include <list>
 #include "Singleton.h"
+#include "Thread.h"
 
 namespace xb
 {
@@ -22,8 +23,8 @@ public:
     typedef std::function<void()> Task; // 任务类型
 private:
     // 互斥锁和条件变量
-    pthread_mutex_t mutex_;
-    pthread_cond_t cond_;
+    MutexLock mutex_;
+    Condition cond_;
 
     std::vector<pthread_t> thread_pool; // 存储线程，充当线程池
     std::list<Task> task_queue;         // 任务队列

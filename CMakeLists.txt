@@ -18,3 +18,6 @@ set(CMAKE_CXX_STANDARD 11)
 #add_executable(client_test client_test.cpp)
 add_executable(server server.cpp src/MyHttp.cpp src/ThreadPool.cpp)
 target_link_libraries(server Threads::Threads ${Boost_LIBRARIES})
+
+add_executable(test test.cpp)
+target_link_libraries(server Threads::Threads ${Boost_LIBRARIES})
