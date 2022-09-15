@@ -86,8 +86,6 @@ protected:
     const int MAX_BUF_SIZE; // 缓冲区最大空间
 
 public:
-    pthread_mutex_t buf_lock;
-
     MyHttp(const int port, const std::string& htdocs, bool flag, int num);
     ~MyHttp();
 
@@ -95,7 +93,7 @@ public:
     std::string my_getline(int clientfd);
     int accept_request(int clientfd);
     void search_file(const std::string& path, int clientfd);
-    void headers(const File& file_t, int clientfd) const;
+    void headers(const File& file_t, int clientfd);
     File FileType(const std::string& path);
 
     void execute_cgi(int clientfd, const std::string& path, const std::string& method, const std::string& paramter);

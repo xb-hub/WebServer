@@ -16,8 +16,14 @@ set(CMAKE_CXX_STANDARD 11)
 #add_executable(threadpool_test threadpool_test.cpp src/ThreadPool.cpp)
 #target_link_libraries(threadpool_test Threads::Threads)
 #add_executable(client_test client_test.cpp)
-add_executable(server server.cpp src/MyHttp.cpp src/ThreadPool.cpp)
+add_executable(server server.cpp src/MyHttp.cpp src/ThreadPool.cpp src/Log.cpp src/util.cpp)
+target_link_libraries(server Threads::Threads ${Boost_LIBRARIES} yaml-cpp)
+
+add_executable(test test/test.cpp)
 target_link_libraries(server Threads::Threads ${Boost_LIBRARIES})
 
-add_executable(test test.cpp)
-target_link_libraries(server Threads::Threads ${Boost_LIBRARIES})
+add_executable(log_test test/log_test.cpp src/Log.cpp src/util.cpp)
+target_link_libraries(log_test yaml-cpp)
+
+add_executable(yaml_test test/yaml_test.cpp)
+target_link_libraries(yaml_test yaml-cpp)

@@ -14,10 +14,10 @@ namespace xb
         Singleton() = default;
 
     public:
-        static T *getInstance()
+        static T& getInstance()
         {
             static T instance;
-            return &instance;
+            return instance;
         }
     };
 
@@ -34,6 +34,12 @@ namespace xb
             std::cout << "singleton" << std::endl;
 #endif
             static std::shared_ptr<T> instance(new T);
+            return instance;
+        }
+
+        static std::shared_ptr<T> getInstance(int thread_num, int task_num)
+        {
+            static std::shared_ptr<T> instance(new T(thread_num, task_num));
             return instance;
         }
     };

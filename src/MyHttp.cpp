@@ -2,12 +2,16 @@
 // Created by 许斌 on 2021/10/27.
 //
 //#define _DEBUG_
-// #define _DEBUG_MESSAGE_
+//#define _DEBUG_MESSAGE_
 //#define _DEBUG_TYPE_
-// #define _DEBUG_HEAD_
+//#define _DEBUG_HEAD_
 
 #include <thread>
+#include <poll.h>
+#include <sys/select.h>
 #include "MyHttp.h"
+#include "Log.h"
+#include "util.h"
 using namespace xb;
 
 // 构造函数初始化
@@ -20,7 +24,7 @@ MyHttp::MyHttp(const int port, const std::string& htdocs, bool flag, int num) :
         use_pool_(flag),
         MAX_BUF_SIZE(1024)
 {
-    pool = ThreadPoolMgr::getInstance();
+    pool = ThreadPoolMgr::getInstance(thread_num_, 20);
 //    std::ifstream access(htaccess_path_, std::ios::in);
 //    std::string ip;
 //    while (!access.eof()) {
@@ -66,32 +70,92 @@ int MyHttp::start_up()
 
     if(bind(serverfd_, (struct sockaddr*)(&addr), sizeof(addr)) < 0)
         return BindError;
-    if(listen(serverfd_, 5) < 0)
+    if(listen(serverfd_, 10) < 0)
         return ListenError;
 
     struct  sockaddr_in client_addr = {0};
     socklen_t len = sizeof(client_addr);
+
+    size_t i;
+    struct pollfd fds[MAX_BUF_SIZE];
+    for(i = 1; i < MAX_BUF_SIZE; ++i)
+    {
+        fds[i].fd = -1;
+    }
+    nfds_t maxi = 0;
+    fds[0].fd = serverfd_;
+    fds[0].events = POLLIN;
+    int clientfd, sockfd;
+
     while (true)
     {
-        int clientfd = -1;
-        if ((clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len)) < 0)  continue;
-//        if(deny[inet_ntoa(client_addr.sin_addr)]) {
-//            std::cout << "deny from " << inet_ntoa(client_addr.sin_addr) << std::endl;
-//            forbidden();
-//            close(clientfd_);
-//            continue;
-//        }
-#ifdef _DEBUG_
-        std::cout << "accetp request from : " << clientfd << std::endl;
-#endif
-        if(use_pool_)   // 使用线程池
-            pool->AddTask(std::bind(&MyHttp::accept_request, this, clientfd));
-        else    // 每次连接创建一个新线程
+        int n_ready = poll(fds, maxi + 1, -1);
+        if (fds[0].revents & POLLIN)
         {
-            std::thread t(&MyHttp::accept_request, this, clientfd);
-            t.join();
+            clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len);
+            LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
+            for (i = 1; i < MAX_BUF_SIZE; i++)
+            {
+                if (fds[i].fd < 0)
+                {
+                    fds[i].fd = clientfd;
+                    break;
+                }
+            }
+            if (i == MAX_BUF_SIZE)
+            {
+                LOG_DEBUG(GET_ROOT_LOGGER(), "too many clients\n");
+                break;
+            }
+            fds[i].events = POLLIN;
+            if (i > maxi)
+            {
+                maxi = i;
+            }
+            if (--n_ready <= 0)
+            {
+                continue;
+            }
+        }
+        for (size_t i = 1; i <= maxi; i++)
+        {
+            sockfd = fds[i].fd;
+            if (sockfd < 0) continue;
+            if (fds[i].revents & (POLLIN | POLLERR))
+            {
+                if (use_pool_)   // 使用线程池
+                    pool->AddTask(std::bind(&MyHttp::accept_request, this, sockfd));
+                else    // 每次连接创建一个新线程
+                {
+                    std::thread t(&MyHttp::accept_request, this, sockfd);
+                    t.join();
+                }
+            }
+            fds[i].fd = -1;
+            if(--n_ready <= 0)
+                break;
         }
     }
+
+//    while (true)
+//    {
+//        int clientfd = -1;
+//        if ((clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len)) < 0)  continue;
+////        if(deny[inet_ntoa(client_addr.sin_addr)]) {
+////            std::cout << "deny from " << inet_ntoa(client_addr.sin_addr) << std::endl;
+////            forbidden();
+////            close(clientfd_);
+////            continue;
+////        }
+//        LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
+//        if(use_pool_)   // 使用线程池
+//            pool->AddTask(std::bind(&MyHttp::accept_request, this, clientfd));
+//        else    // 每次连接创建一个新线程
+//        {
+//            std::thread t(&MyHttp::accept_request, this, clientfd);
+//            t.join();
+//        }
+//    }
 }
 
 // 获取http报文的一行
@@ -211,7 +275,7 @@ void MyHttp::execute_cgi(int clientfd, const std::string& path, const std::strin
 }
 
 // 添加http响应报文头并区分文件类型
-void MyHttp::headers(const File& file_t, int clientfd) const
+void MyHttp::headers(const File& file_t, int clientfd)
 {
     std::string response = "HTTP/1.1 200 OK\r\n";
     switch (file_t.type)
