@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
              ("port,p", boost::program_options::value<int>(&port)->default_value(4000), "port number")
              ("root,r", boost::program_options::value<std::string>(&root)->default_value("/Users/xubin/Desktop/WebServer/htdocs"), "root path")
              ("pool,y", boost::program_options::value<std::string>(&is_using)->default_value("pool"), "using thread pool")
-             ("thread,t", boost::program_options::value<int>(&thread_number)->default_value(10), "thread number");
+             ("thread,t", boost::program_options::value<int>(&thread_number)->default_value(100), "thread number");
     boost::program_options::positional_options_description pdesc;
     pdesc.add("port", 1).add("root", 1).add("pool", 1).add("thread", 1);
 

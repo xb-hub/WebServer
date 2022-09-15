@@ -24,7 +24,7 @@ MyHttp::MyHttp(const int port, const std::string& htdocs, bool flag, int num) :
         use_pool_(flag),
         MAX_BUF_SIZE(1024)
 {
-    pool = ThreadPoolMgr::getInstance(thread_num_, 120);
+    pool = ThreadPoolMgr::getInstance(thread_num_, thread_num_);
 //    std::ifstream access(htaccess_path_, std::ios::in);
 //    std::string ip;
 //    while (!access.eof()) {
@@ -76,86 +76,86 @@ int MyHttp::start_up()
     struct  sockaddr_in client_addr = {0};
     socklen_t len = sizeof(client_addr);
 
-    size_t i;
-    struct pollfd fds[MAX_BUF_SIZE];
-    for(i = 1; i < MAX_BUF_SIZE; ++i)
-    {
-        fds[i].fd = -1;
-    }
-    nfds_t maxi = 0;
-    fds[0].fd = serverfd_;
-    fds[0].events = POLLIN;
-    int clientfd, sockfd;
+//    size_t i;
+//    struct pollfd fds[MAX_BUF_SIZE];
+//    for(i = 1; i < MAX_BUF_SIZE; ++i)
+//    {
+//        fds[i].fd = -1;
+//    }
+//    nfds_t maxi = 0;
+//    fds[0].fd = serverfd_;
+//    fds[0].events = POLLIN;
+//    int clientfd, sockfd;
+//
+//    while (true)
+//    {
+//        int n_ready = poll(fds, maxi + 1, -1);
+//        if (fds[0].revents & POLLIN)
+//        {
+//            clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len);
+//            LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
+//            for (i = 1; i < MAX_BUF_SIZE; i++)
+//            {
+//                if (fds[i].fd < 0)
+//                {
+//                    fds[i].fd = clientfd;
+//                    break;
+//                }
+//            }
+//            if (i == MAX_BUF_SIZE)
+//            {
+//                LOG_DEBUG(GET_ROOT_LOGGER(), "too many clients\n");
+//                break;
+//            }
+//            fds[i].events = POLLIN;
+//            if (i > maxi)
+//            {
+//                maxi = i;
+//            }
+//            if (--n_ready <= 0)
+//            {
+//                continue;
+//            }
+//        }
+//        for (size_t i = 1; i <= maxi; i++)
+//        {
+//            sockfd = fds[i].fd;
+//            if (sockfd < 0) continue;
+//            if (fds[i].revents & (POLLIN | POLLERR))
+//            {
+//                if (use_pool_)   // 使用线程池
+//                    pool->AddTask(std::bind(&MyHttp::accept_request, this, sockfd));
+//                else    // 每次连接创建一个新线程
+//                {
+//                    std::thread t(&MyHttp::accept_request, this, sockfd);
+//                    t.join();
+//                }
+//            }
+//            fds[i].fd = -1;
+//            if(--n_ready <= 0)
+//                break;
+//        }
+//    }
 
     while (true)
     {
-        int n_ready = poll(fds, maxi + 1, -1);
-        if (fds[0].revents & POLLIN)
+        int clientfd = -1;
+        if ((clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len)) < 0)  continue;
+//        if(deny[inet_ntoa(client_addr.sin_addr)]) {
+//            std::cout << "deny from " << inet_ntoa(client_addr.sin_addr) << std::endl;
+//            forbidden();
+//            close(clientfd_);
+//            continue;
+//        }
+        LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
+        if(use_pool_)   // 使用线程池
+            pool->AddTask(std::bind(&MyHttp::accept_request, this, clientfd));
+        else    // 每次连接创建一个新线程
         {
-            clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len);
-            LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
-            for (i = 1; i < MAX_BUF_SIZE; i++)
-            {
-                if (fds[i].fd < 0)
-                {
-                    fds[i].fd = clientfd;
-                    break;
-                }
-            }
-            if (i == MAX_BUF_SIZE)
-            {
-                LOG_DEBUG(GET_ROOT_LOGGER(), "too many clients\n");
-                break;
-            }
-            fds[i].events = POLLIN;
-            if (i > maxi)
-            {
-                maxi = i;
-            }
-            if (--n_ready <= 0)
-            {
-                continue;
-            }
-        }
-        for (size_t i = 1; i <= maxi; i++)
-        {
-            sockfd = fds[i].fd;
-            if (sockfd < 0) continue;
-            if (fds[i].revents & (POLLIN | POLLERR))
-            {
-                if (use_pool_)   // 使用线程池
-                    pool->AddTask(std::bind(&MyHttp::accept_request, this, sockfd));
-                else    // 每次连接创建一个新线程
-                {
-                    std::thread t(&MyHttp::accept_request, this, sockfd);
-                    t.join();
-                }
-            }
-            fds[i].fd = -1;
-            if(--n_ready <= 0)
-                break;
+            std::thread t(&MyHttp::accept_request, this, clientfd);
+            t.detach();
         }
     }
-
-//    while (true)
-//    {
-//        int clientfd = -1;
-//        if ((clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len)) < 0)  continue;
-////        if(deny[inet_ntoa(client_addr.sin_addr)]) {
-////            std::cout << "deny from " << inet_ntoa(client_addr.sin_addr) << std::endl;
-////            forbidden();
-////            close(clientfd_);
-////            continue;
-////        }
-//        LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
-//        if(use_pool_)   // 使用线程池
-//            pool->AddTask(std::bind(&MyHttp::accept_request, this, clientfd));
-//        else    // 每次连接创建一个新线程
-//        {
-//            std::thread t(&MyHttp::accept_request, this, clientfd);
-//            t.detach();
-//        }
-//    }
 }
 
 // 获取http报文的一行
