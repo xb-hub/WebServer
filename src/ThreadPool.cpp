@@ -13,11 +13,13 @@ ThreadPool::ThreadPool() :
         is_running(false),
         cond_(mutex_)
 {
-    thread_pool.resize(MAX_THREAD_NUM);
-    is_running = true;
     // 在线程池内创建线程
     for(int i = 0; i < MAX_THREAD_NUM; i++)
-        pthread_create(&thread_pool[i], nullptr, threadfun, this);
+    {
+        pthread_create(thread_pool + i, nullptr, threadfun, this);
+        pthread_detach(thread_pool[i]);
+    }
+    is_running = true;
 }
 
 ThreadPool::ThreadPool(const int thread_num, const int task_num) :
@@ -26,10 +28,13 @@ ThreadPool::ThreadPool(const int thread_num, const int task_num) :
         is_running(false),
         cond_(mutex_)
 {
-    thread_pool.resize(MAX_THREAD_NUM);
+    thread_pool = new pthread_t[thread_num];
     // 在线程池内创建线程
     for(int i = 0; i < MAX_THREAD_NUM; i++)
-        pthread_create(&thread_pool[i], nullptr, threadfun, this);
+    {
+        pthread_create(thread_pool + i, nullptr, threadfun, this);
+        pthread_detach(thread_pool[i]);
+    }
     is_running = true;
 }
 
@@ -43,9 +48,8 @@ void ThreadPool::stop()
 {
     if(!is_running)
         return;
+    delete [] thread_pool;
     is_running = false;
-    for(int i = 0; i < MAX_THREAD_NUM; i++)
-        pthread_join(thread_pool[i], nullptr);
 }
 
 // 添加任务到任务队列
@@ -54,7 +58,7 @@ void ThreadPool::AddTask(const Task& task)
     MutexLockGuard lock(mutex_);
     while(getSize() == MAX_TASK_NUM && is_running)
         cond_.wait();
-    task_queue.push_front(task);
+    task_queue.push_back(task);
     cond_.notifyAll();
 }
 
@@ -85,7 +89,7 @@ void* ThreadPool::threadfun(void* arg)
         ThreadPool::Task task = pool->TakeTask();       // 获取任务
         if (!task)
         {
-            break;
+            continue;
         }
 #ifdef _DEBUG_
         std::cout << "task: " << pthread_self() << std::endl;

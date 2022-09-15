@@ -26,7 +26,7 @@ private:
     MutexLock mutex_;
     Condition cond_;
 
-    std::vector<pthread_t> thread_pool; // 存储线程，充当线程池
+    pthread_t* thread_pool;             // 存储线程，充当线程池
     std::list<Task> task_queue;         // 任务队列
     static void* threadfun(void* arg);  // 线程函数
 

@@ -24,7 +24,7 @@ MyHttp::MyHttp(const int port, const std::string& htdocs, bool flag, int num) :
         use_pool_(flag),
         MAX_BUF_SIZE(1024)
 {
-    pool = ThreadPoolMgr::getInstance(thread_num_, 20);
+    pool = ThreadPoolMgr::getInstance(thread_num_, 120);
 //    std::ifstream access(htaccess_path_, std::ios::in);
 //    std::string ip;
 //    while (!access.eof()) {
@@ -153,7 +153,7 @@ int MyHttp::start_up()
 //        else    // 每次连接创建一个新线程
 //        {
 //            std::thread t(&MyHttp::accept_request, this, clientfd);
-//            t.join();
+//            t.detach();
 //        }
 //    }
 }
