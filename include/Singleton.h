@@ -36,12 +36,6 @@ namespace xb
             static std::shared_ptr<T> instance(new T);
             return instance;
         }
-
-        static std::shared_ptr<T> getInstance(int thread_num, int task_num)
-        {
-            static std::shared_ptr<T> instance(new T(thread_num, task_num));
-            return instance;
-        }
     };
 }
 

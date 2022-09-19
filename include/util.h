@@ -12,7 +12,7 @@
 namespace xb
 {
 
-uint64_t GetThreadId();
+pid_t GetThreadId();
 
 }
 

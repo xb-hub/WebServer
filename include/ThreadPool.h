@@ -17,40 +17,39 @@
 namespace xb
 {
 
-class ThreadPool
+class ThreadPool : boost::noncopyable
 {
 public:
     typedef std::function<void()> Task; // 任务类型
-private:
-    // 互斥锁和条件变量
-    MutexLock mutex_;
-    Condition cond_;
-
-    pthread_t* thread_pool;             // 存储线程，充当线程池
-    std::list<Task> task_queue;         // 任务队列
-    static void* threadfun(void* arg);  // 线程函数
+    typedef std::shared_ptr<ThreadPool> ptr;
 
 public:
-    ThreadPool();
-    ThreadPool(const int thread_num, const int task_num);
+    ThreadPool(const std::string& name);
 
 protected:
-    const int MAX_THREAD_NUM;           // 线程池最大线程数
-    const int MAX_TASK_NUM;             // 任务队列最大任务数
+    const int TASK_NUM;             // 任务队列任务数
 
 public:
     ~ThreadPool();
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
 
     bool is_running;
     void AddTask(const Task& task);
     Task TakeTask();
     size_t getSize();
+    void start(int thread_num);
     void stop();
-};
 
-typedef xb::SingletonPtr<ThreadPool> ThreadPoolMgr;
+private:
+    // 互斥锁和条件变量
+    MutexLock mutex_;
+    Condition cond_;
+
+    std::vector<std::unique_ptr<Thread>> thread_pool;             // 存储线程，充当线程池
+    std::list<Task> task_queue;         // 任务队列
+    static void* threadfun(void* arg);  // 线程函数
+
+    const std::string name_;
+};
 
 }
 

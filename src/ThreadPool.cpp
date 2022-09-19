@@ -3,40 +3,19 @@
 //
 //#define _DEBUG_
 #include <memory>
+#include <string>
+#include <assert.h>
 #include "ThreadPool.h"
 using namespace xb;
 
 // 构造函数初始化
-ThreadPool::ThreadPool() :
-        MAX_THREAD_NUM(10),
-        MAX_TASK_NUM(20),
+ThreadPool::ThreadPool(const std::string& name) :
+        TASK_NUM(20),
         is_running(false),
-        cond_(mutex_)
-{
-    // 在线程池内创建线程
-    for(int i = 0; i < MAX_THREAD_NUM; i++)
-    {
-        pthread_create(thread_pool + i, nullptr, threadfun, this);
-        pthread_detach(thread_pool[i]);
-    }
-    is_running = true;
-}
-
-ThreadPool::ThreadPool(const int thread_num, const int task_num) :
-        MAX_THREAD_NUM(thread_num),
-        MAX_TASK_NUM(task_num),
-        is_running(false),
-        cond_(mutex_)
-{
-    thread_pool = new pthread_t[thread_num];
-    // 在线程池内创建线程
-    for(int i = 0; i < MAX_THREAD_NUM; i++)
-    {
-        pthread_create(thread_pool + i, nullptr, threadfun, this);
-        pthread_detach(thread_pool[i]);
-    }
-    is_running = true;
-}
+        mutex_(),
+        cond_(mutex_),
+        name_(name)
+{}
 
 // 析构函数，销毁instance、互斥锁和条件变量
 ThreadPool::~ThreadPool()
@@ -44,19 +23,35 @@ ThreadPool::~ThreadPool()
     stop();
 }
 
+void ThreadPool::start(int thread_num)
+{
+    assert(thread_pool.empty());
+    is_running = true;
+    thread_pool.reserve(thread_num);
+    // 在线程池内创建线程
+    for(int i = 0; i < thread_num; i++)
+    {
+        thread_pool.emplace_back(new Thread(name_ + std::to_string(i + 1), std::bind(&ThreadPool::threadfun, this)));
+        thread_pool[i]->start();
+    }
+}
+
 void ThreadPool::stop()
 {
     if(!is_running)
         return;
-    delete [] thread_pool;
     is_running = false;
+    for(auto& it : thread_pool)
+    {
+        it->join();
+    }
 }
 
 // 添加任务到任务队列
 void ThreadPool::AddTask(const Task& task)
 {
     MutexLockGuard lock(mutex_);
-    while(getSize() == MAX_TASK_NUM && is_running)
+    while(getSize() == TASK_NUM && is_running)
         cond_.wait();
     task_queue.push_back(task);
     cond_.notifyAll();
@@ -91,9 +86,6 @@ void* ThreadPool::threadfun(void* arg)
         {
             continue;
         }
-#ifdef _DEBUG_
-        std::cout << "task: " << pthread_self() << std::endl;
-#endif
         task(); // 执行任务
     }
     return nullptr;

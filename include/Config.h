@@ -206,21 +206,21 @@ class ConfigVarBase
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
     ConfigVarBase(const std::string& name, const std::string& description) :
-            m_name(name),
-            m_description(description)
+            name_(name),
+            description_(description)
     {
-        std::transform(m_name.begin(), m_name.end(), m_name.begin(), ::tolower);
+        std::transform(name_.begin(), name_.end(), name_.begin(), ::tolower);
     }
 
-    std::string getName() const { return m_name; }
-    std::string getDescription() const  { return m_description; }
+    std::string getName() const { return name_; }
+    std::string getDescription() const  { return description_; }
 
     virtual std::string toString() = 0;
     virtual bool fromString(const std::string& str) = 0;
 
 private:
-    std::string m_name;
-    std::string m_description;
+    std::string name_;
+    std::string description_;
 };
 
 template<typename T>
@@ -231,23 +231,23 @@ public:
     typedef std::function<void(const T&, const T&)> modifyCallback;
     ConfigVar(const std::string& name, const std::string& description, const T& value) :
             ConfigVarBase(name, description),
-            m_value(value)
+            value_(value)
     {}
     ~ConfigVar() = default;
-    T getValue() const  { return m_value; }
+    T getValue() const  { return value_; }
     void setValue(const T& value)
     {
         {
-            ReadLockGraud lock(m_rw_lock);
-            if(value == m_value)    return;
-            T old_value = m_value;
-            for(const auto& it : m_callback_map)
+            ReadLockGraud lock(rw_lock_);
+            if(value == value_)    return;
+            T old_value = value_;
+            for(const auto& it : callback_map_)
             {
                 it.second(old_value, value);
             }
         }
-        WriteLockGraud lockGraud(m_rw_lock);
-        m_value = value;
+        WriteLockGraud lockGraud(rw_lock_);
+        value_ = value;
     }
 
     std::string toString() override
@@ -262,7 +262,7 @@ public:
                       << e.what()
                       << " convert: "
                       << "string to "
-                      << typeid(m_value).name() << std::endl;
+                      << typeid(value_).name() << std::endl;
         }
         return "error!";
     }
@@ -279,7 +279,7 @@ public:
                       << e.what()
                       << " convert: "
                       << "string to "
-                      << typeid(m_value).name() << std::endl;
+                      << typeid(value_).name() << std::endl;
         }
         return false;
     }
@@ -287,36 +287,36 @@ public:
     uint64_t addListener(modifyCallback cb)
     {
         static uint64_t index = 0;
-        WriteLockGraud lock(m_rw_lock);
-        m_callback_map[++index] = cb;
+        WriteLockGraud lock(rw_lock_);
+        callback_map_[++index] = cb;
         return index;
     }
 
     void delListener(uint64_t key)
     {
-        WriteLockGraud lock(m_rw_lock);
-        m_callback_map.erase(key);
+        WriteLockGraud lock(rw_lock_);
+        callback_map_.erase(key);
     }
 
     modifyCallback getListener(uint64_t key)
     {
-        ReadLockGraud lock(m_rw_lock);
-        auto iter = m_callback_map.find(key);
-        if (iter == m_callback_map.end())
+        ReadLockGraud lock(rw_lock_);
+        auto iter = callback_map_.find(key);
+        if (iter == callback_map_.end())
             return nullptr;
         return iter->second;
     }
 
     void clearListener()
     {
-        WriteLockGraud lock(m_rw_lock);
-        m_callback_map.clear();
+        WriteLockGraud lock(rw_lock_);
+        callback_map_.clear();
     }
 
 private:
-    T m_value;
-    std::map<uint64_t, modifyCallback> m_callback_map;
-    RWLock m_rw_lock;
+    T value_;
+    std::map<uint64_t, modifyCallback> callback_map_;
+    RWLock rw_lock_;
 };
 
 class Config

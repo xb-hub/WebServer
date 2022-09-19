@@ -78,15 +78,13 @@ private:
 //    std::unordered_map<std::string, bool> allow;
 
     // ThreadPool* pool;   // 线程池实例
-    std::shared_ptr<ThreadPool> pool;
-
-    bool use_pool_;     // 是否使用线程池
+    ThreadPool::ptr pool;
 
 protected:
     const int MAX_BUF_SIZE; // 缓冲区最大空间
 
 public:
-    MyHttp(const int port, const std::string& htdocs, bool flag, int num);
+    MyHttp(const int port, const std::string& htdocs, int num);
     ~MyHttp();
 
     int start_up();

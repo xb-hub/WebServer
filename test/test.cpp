@@ -4,6 +4,7 @@
 
 #include "Thread.h"
 #include <iostream>
+using namespace xb;
 
 MutexLock mutex_;
 Condition cond_(mutex_);

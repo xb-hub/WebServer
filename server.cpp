@@ -21,11 +21,10 @@ int main(int argc, char* argv[])
          desc.add_options()
              ("help", "produce help message")
              ("port,p", boost::program_options::value<int>(&port)->default_value(4000), "port number")
-             ("root,r", boost::program_options::value<std::string>(&root)->default_value("/Users/xubin/Desktop/WebServer/htdocs"), "root path")
-             ("pool,y", boost::program_options::value<std::string>(&is_using)->default_value("pool"), "using thread pool")
-             ("thread,t", boost::program_options::value<int>(&thread_number)->default_value(100), "thread number");
+             ("root,r", boost::program_options::value<std::string>(&root)->default_value("/home/xubin/Websever/htdocs"), "root path")
+             ("thread,t", boost::program_options::value<int>(&thread_number)->default_value(30), "thread number");
     boost::program_options::positional_options_description pdesc;
-    pdesc.add("port", 1).add("root", 1).add("pool", 1).add("thread", 1);
+    pdesc.add("port", 1).add("root", 1).add("thread", 1);
 
     boost::program_options::variables_map vm;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv).options(desc).positional(pdesc).run(), vm);
@@ -36,24 +35,8 @@ int main(int argc, char* argv[])
         std::cout << desc << std::endl;
         return 1;
     }
-
     // 创建MyHttp实例
-    std::shared_ptr<MyHttp> http;
-    if(!strcasecmp(is_using.c_str(), "pool"))
-    {
-#ifdef _DEBUG_POOL_
-        std::cout << "using ThreadPool!" << std::endl;
-#endif
-        http = std::shared_ptr<MyHttp>(new MyHttp(port, root, true, thread_number));
-    }
-    else
-    {
-#ifdef _DEBUG_POOL_
-        std::cout << "don't use ThreadPool!" << std::endl;
-#endif
-        http = std::shared_ptr<MyHttp>(new MyHttp(port, root, false, 0));
-    }
-    // 启动服务器
+    std::shared_ptr<MyHttp> http = std::shared_ptr<MyHttp>(new MyHttp(port, root, thread_number));
     http->start_up();
     return 0;
 }

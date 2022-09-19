@@ -257,6 +257,7 @@ void LogFormatter::init()
         switch(stauts)
         {
             case COMMON_STR:
+            {
                 while(m_pattern[i] != '%')
                 {
                     str += m_pattern[i];
@@ -265,17 +266,21 @@ void LogFormatter::init()
                 stauts = FORMAT_STR;
                 m_items_list.push_back(std::make_shared<CommonStrFormatItem>(str));
                 break;
+            }
             case FORMAT_STR:
+            {
                 auto iter = m_format_items_map.find(m_pattern[i]);
                 if(iter == m_format_items_map.end())
                 {
-                    m_items_list.push_back(std::make_shared<CommonStrFormatItem>("error format!"));
+                    m_items_list.push_back(std::make_shared<CommonStrFormatItem>("error format!\n"));
                 }
                 else
                 {
                     m_items_list.push_back(iter->second);
                 }
                 stauts = COMMON_STR;
+                break;
+            }
         }
     }
 }
@@ -297,7 +302,6 @@ __LoggerManager::__LoggerManager()
 
 void __LoggerManager::init()
 {
-    std::cout << "init log" << std::endl;
     MutexLockGuard lock(m_mutex);
     auto config = Config::LookUp<std::vector<LogConfig>>("logs");
     auto config_log_list = config->getValue();

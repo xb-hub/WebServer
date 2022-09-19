@@ -8,7 +8,12 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <iostream>
+#include <functional>
+#include <memory>
 #include <boost/noncopyable.hpp>
+
+namespace xb
+{
 
 class MutexLock : public boost::noncopyable
 {
@@ -101,67 +106,67 @@ class RWLock : public boost::noncopyable
 public:
     RWLock()
     {
-        pthread_rwlock_init(&m_rw_lock, nullptr);
+        pthread_rwlock_init(&rw_lock_, nullptr);
     }
 
     ~RWLock()
     {
-        pthread_rwlock_destroy(&m_rw_lock);
+        pthread_rwlock_destroy(&rw_lock_);
     }
 
     void rdLock()
     {
-        pthread_rwlock_rdlock(&m_rw_lock);
+        pthread_rwlock_rdlock(&rw_lock_);
     }
 
     void wrLock()
     {
-        pthread_rwlock_wrlock(&m_rw_lock);
+        pthread_rwlock_wrlock(&rw_lock_);
     }
 
     void unlock()
     {
-        pthread_rwlock_unlock(&m_rw_lock);
+        pthread_rwlock_unlock(&rw_lock_);
     }
 
 private:
-    pthread_rwlock_t m_rw_lock;
+    pthread_rwlock_t rw_lock_;
 };
 
 class ReadLockGraud : public boost::noncopyable
 {
 public:
     ReadLockGraud(RWLock& r_lock) :
-            m_r_lock(r_lock)
+            r_lock_(r_lock)
     {
-        m_r_lock.rdLock();
+        r_lock_.rdLock();
     }
 
     ~ReadLockGraud()
     {
-        m_r_lock.unlock();
+        r_lock_.unlock();
     }
 
 private:
-    RWLock& m_r_lock;
+    RWLock& r_lock_;
 };
 
 class WriteLockGraud : public boost::noncopyable
 {
 public:
     WriteLockGraud(RWLock& w_lock) :
-            m_w_lock(w_lock)
+            w_lock_(w_lock)
     {
-        w_lock.wrLock();
+        w_lock_.wrLock();
     }
 
     ~WriteLockGraud()
     {
-        m_w_lock.unlock();
+        w_lock_.unlock();
     }
 
 private:
-    RWLock& m_w_lock;
+    RWLock& w_lock_;
 };
 
 class CountDownLatch : public boost::noncopyable
@@ -203,23 +208,52 @@ private:
     int count_;
 };
 
-class Thread
+class Thread : boost::noncopyable
 {
 public:
     typedef std::shared_ptr<Thread> ptr;
-    Thread(const std::string name, std::function<void()> cb);
+    typedef std::function<void()> ThreadFunc;
+    Thread(const std::string& name, ThreadFunc func);
     ~Thread();
 
-    const std::string& getName() const  { return m_name; }
-    void join();
+    pid_t getId() const { return tid_; }
+    const std::string& getName() const  { return name_; }
+    int join();
+
+    void start();
 
 private:
     static void* run(void* arg);
 
 private:
-    pthread_t m_thread = 0;
-    std::string m_name;
-    std::function<void()> m_cb;
+    pid_t tid_ = -1;
+    pthread_t threadId_ = 0;
+    std::string name_;
+    ThreadFunc func_;
+
+    bool started_;
+    bool join_;
+    CountDownLatch latch_;
 };
+
+class ThreadData : boost::noncopyable
+{
+public:
+    typedef std::shared_ptr<ThreadData> ptr;
+    typedef Thread::ThreadFunc ThreadFunc;
+
+    ThreadData(const std::string& name, ThreadFunc func, pid_t* tid, CountDownLatch* latch);
+    ~ThreadData();
+
+    void runInThread();
+
+private:
+    std::string name_;
+    ThreadFunc func_;
+    pid_t* tid_;
+    CountDownLatch* latch_;
+};
+
+} // namespace xb
 
 #endif //EPOLL_H_THREAD_H
