@@ -11,7 +11,9 @@
 #include "MyHttp.h"
 #include "Log.h"
 #include "util.h"
-using namespace xb;
+
+namespace xb
+{
 
 // static Logger::ptr logger = GET_ROOT_LOGGER();
 
@@ -359,3 +361,5 @@ File MyHttp::FileType(const std::string &path)
         return {Application, file_exten};
     return {Unknown, ""};
 }
+
+} // namespace xb

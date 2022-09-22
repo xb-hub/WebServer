@@ -4,7 +4,9 @@
 
 #include "Thread.h"
 #include "Log.h"
-using namespace xb;
+
+namespace xb
+{
 
 // static Logger::ptr logger = GET_ROOT_LOGGER();
 
@@ -12,7 +14,7 @@ static thread_local std::string thread_name = "UNKNOWN";
 
 ThreadData::ThreadData(const std::string& name, ThreadFunc func, pid_t* tid, CountDownLatch* latch) :
         name_(name),
-        func_(func),
+        func_(std::move(func)),
         tid_(tid),
         latch_(latch)
 {}
@@ -60,12 +62,12 @@ Thread::~Thread()
     }
 }
 
-int Thread::join()
+void Thread::join()
 {
     if(started_ && !join_)
     {
         join_ = true;
-        return pthread_join(threadId_, nullptr);
+        pthread_join(threadId_, nullptr);
     }
 }
 
@@ -96,3 +98,4 @@ void* Thread::run(void* arg)
     return nullptr;
 }
 
+} // namespace xb

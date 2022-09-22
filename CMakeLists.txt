@@ -11,12 +11,14 @@ include_directories(
         ${YAML_CPP_INCLUDE_DIRS}
 )
 
-set(CMAKE_CXX_STANDARD 11)
+add_compile_options(-std=c++11)
+
+set(SOURCE_LIST server.cpp src/MyHttp.cpp src/ThreadPool.cpp src/Thread.cpp src/Log.cpp src/util.cpp)
 
 #add_executable(threadpool_test threadpool_test.cpp src/ThreadPool.cpp)
 #target_link_libraries(threadpool_test Threads::Threads)
 #add_executable(client_test client_test.cpp)
-add_executable(server server.cpp src/MyHttp.cpp src/ThreadPool.cpp src/Thread.cpp src/Log.cpp src/util.cpp)
+add_executable(server ${SOURCE_LIST})
 target_link_libraries(server Threads::Threads ${Boost_LIBRARIES} yaml-cpp)
 
 add_executable(test test/test.cpp)

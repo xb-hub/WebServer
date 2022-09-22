@@ -2,8 +2,8 @@
 // Created by 许斌 on 2021/10/27.
 //
 
-#ifndef THREADPOOL_MYHTTP_H
-#define THREADPOOL_MYHTTP_H
+#ifndef _MYHTTP_H_
+#define _MYHTTP_H_
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -106,4 +106,4 @@ public:
 };
 }
 
-#endif //THREADPOOL_MYHTTP_H
+#endif //_MYHTTP_H_

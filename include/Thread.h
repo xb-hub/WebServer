@@ -2,8 +2,8 @@
 // Created by 许斌 on 2022/9/5.
 //
 
-#ifndef EPOLL_H_THREAD_H
-#define EPOLL_H_THREAD_H
+#ifndef _THREAD_H_
+#define _THREAD_H_
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -81,7 +81,7 @@ public:
 
     void wait()
     {
-//        std::cout << "wait" << std::endl;
+    //    std::cout << "wait" << std::endl;
         pthread_cond_wait(&cond_, mutex_.getMutex());
     }
 
@@ -92,7 +92,7 @@ public:
 
     void notifyAll()
     {
-//        std::cout << "broadcast" << std::endl;
+    //    std::cout << "broadcast" << std::endl;
         pthread_cond_broadcast(&cond_);
     }
 
@@ -218,7 +218,7 @@ public:
 
     pid_t getId() const { return tid_; }
     const std::string& getName() const  { return name_; }
-    int join();
+    void join();
 
     void start();
 
@@ -256,4 +256,4 @@ private:
 
 } // namespace xb
 
-#endif //EPOLL_H_THREAD_H
+#endif // _THREAD_H_

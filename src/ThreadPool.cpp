@@ -6,8 +6,10 @@
 #include <string>
 #include <assert.h>
 #include "ThreadPool.h"
-using namespace xb;
 
+namespace xb
+{
+    
 // 构造函数初始化
 ThreadPool::ThreadPool(const std::string& name) :
         TASK_NUM(20),
@@ -90,3 +92,5 @@ void* ThreadPool::threadfun(void* arg)
     }
     return nullptr;
 }
+
+} // namespace xb

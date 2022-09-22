@@ -3,3 +3,8 @@
 //
 
 #include "Epoll.h"
+
+namespace xb
+{
+    
+} // namespace xb

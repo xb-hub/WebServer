@@ -2,8 +2,8 @@
 // Created by 许斌 on 2022/5/10.
 //
 
-#ifndef SINGLETON_H
-#define SINGLETON_H
+#ifndef _SINGLETON_H_
+#define _SINGLETON_H_
 
 namespace xb
 {
@@ -39,4 +39,4 @@ namespace xb
     };
 }
 
-#endif //EPOLL_H_SINGLETON_H
+#endif //_SINGLETON_H_

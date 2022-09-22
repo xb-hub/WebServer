@@ -2,8 +2,8 @@
 // Created by 许斌 on 2022/9/6.
 //
 
-#ifndef EPOLL_H_CONFIG_H
-#define EPOLL_H_CONFIG_H
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
 
 #include <iostream>
 #include <yaml-cpp/yaml.h>
@@ -423,4 +423,4 @@ private:
 
 }
 
-#endif //EPOLL_H_CONFIG_H
+#endif //_CONFIG_H_

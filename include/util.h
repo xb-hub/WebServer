@@ -2,8 +2,8 @@
 // Created by 许斌 on 2022/9/9.
 //
 
-#ifndef EPOLL_H_UTIL_H
-#define EPOLL_H_UTIL_H
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -16,4 +16,4 @@ pid_t GetThreadId();
 
 }
 
-#endif //EPOLL_H_UTIL_H
+#endif //_UTIL_H_

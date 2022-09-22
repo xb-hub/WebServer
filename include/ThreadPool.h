@@ -2,8 +2,8 @@
 // Created by 许斌 on 2021/10/26.
 //
 
-#ifndef THREADPOOL_THREADPOOL_H
-#define THREADPOOL_THREADPOOL_H
+#ifndef _THREADPOOL_H_
+#define _THREADPOOL_H_
 #include <functional>
 //#include <pthread.h>
 #include <thread>
@@ -53,4 +53,4 @@ private:
 
 }
 
-#endif //THREADPOOL_THREADPOOL_H
+#endif //_THREADPOOL_H_
