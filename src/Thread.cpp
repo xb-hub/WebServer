@@ -32,14 +32,14 @@ void ThreadData::runInThread()
     latch_->countDown();
     latch_ = nullptr;
     thread_name = name_.empty() ? "unknownThread" : name_.c_str();
-    // pthread_setname_np(pthread_self(), name_.substr(0, 15).c_str());
+    pthread_setname_np(pthread_self(), name_.substr(0, 15).c_str());
     try
     {
         func_();
     }
     catch(const std::exception& e)
     {
-        // LOG_DEBUG(GET_ROOT_LOGGER(), "run Thread failure!");
+        LOG_FATAL(GET_ROOT_LOGGER(), "run Thread failure!");
     }
     
 }

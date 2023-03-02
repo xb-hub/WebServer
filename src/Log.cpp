@@ -327,7 +327,7 @@ void __LoggerManager::init()
             appender->setFormatter(std::make_shared<LogFormatter>(appender_config.formatter));
             logger->addAppender(std::move(appender));
         }
-        std::cout << "成功创建日志器 " << log_config.name << std::endl;
+        // std::cout << "成功创建日志器 " << log_config.name << std::endl;
         m_logger_map.insert(std::make_pair(log_config.name, std::move(logger)));
     }
 }

@@ -4,13 +4,20 @@ logs:
     appender:
       - type: 1
         formatter: "[%d] [%t] [%p] [%f:%l]%T%m%n"
-        file: "/home/xubin/Websever/log/test_root_log.txt"
+        file: "/home/xubin/Desktop/WebServer/log/test_root_log.txt"
   - name: file
     level: 4
     appender:
       - type: 1
         formatter: "[%d] [%t] [%p] [%f:%l]%T%m%n"
         file: "/home/xubin/Websever/log/logtest_file_log.txt"
+  - name: system
+    level: 4
+    formatter: "[%d] [%p] [%f]%T%m%n"
+    appender:
+      - type: 1
+        file: /home/log/sftest_system_log.txt
+
 
 system:
   port: 8088

@@ -17,7 +17,8 @@
 #include <arpa/inet.h>
 #include <unordered_map>
 #include <memory>
-#include "ThreadPool.h"
+#include "Coroutine/ThreadPool.h"
+#include "Coroutine/Scheduler.h"
 
 namespace xb
 {
@@ -69,16 +70,13 @@ struct File
 class MyHttp
 {
 private:
-//    std::string htaccess_path_;
     std::string root_;  // 服务器文件根目录
     int thread_num_;    // 线程池线程数
     int serverfd_;      // 服务器套接字
     int port_;          // 端口
-//    std::unordered_map<std::string, bool> deny;
-//    std::unordered_map<std::string, bool> allow;
 
-    // ThreadPool* pool;   // 线程池实例
     ThreadPool::ptr pool;
+    Scheduler::ptr schedule;
 
 protected:
     const int MAX_BUF_SIZE; // 缓冲区最大空间

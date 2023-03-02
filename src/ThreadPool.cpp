@@ -1,7 +1,7 @@
 //
 // Created by 许斌 on 2021/10/26.
 //
-//#define _DEBUG_
+// #define _DEBUG_
 #include <memory>
 #include <string>
 #include <assert.h>
@@ -15,7 +15,8 @@ ThreadPool::ThreadPool(const std::string& name) :
         TASK_NUM(20),
         is_running(false),
         mutex_(),
-        cond_(mutex_),
+        take_cond_(mutex_),
+        add_cond_(mutex_),
         name_(name)
 {}
 
@@ -52,45 +53,60 @@ void ThreadPool::stop()
 // 添加任务到任务队列
 void ThreadPool::AddTask(const Task& task)
 {
+// #ifdef _DEBUG_
+//     std::cout << "add task!" << std::endl;
+// #endif
     MutexLockGuard lock(mutex_);
-    while(getSize() == TASK_NUM && is_running)
-        cond_.wait();
+    while(task_queue.size() >= TASK_NUM && is_running)
+        add_cond_.wait();
+#ifdef _DEBUG_
+    std::cout << task_queue.size() << std::endl;
+#endif
     task_queue.push_back(task);
-    cond_.notifyAll();
+    take_cond_.notifyAll();
 }
 
 // 从任务队列中提取任务
 ThreadPool::Task ThreadPool::TakeTask()
 {
+// #ifdef _DEBUG_
+//     std::cout << "take task!" << std::endl;
+// #endif
     MutexLockGuard lock(mutex_);
     while (task_queue.empty() && is_running)
-        cond_.wait();
+        take_cond_.wait();
+#ifdef _DEBUG_
+    std::cout << task_queue.size() << std::endl;
+#endif
     Task task = task_queue.front();
     task_queue.pop_front();
-    cond_.notifyAll();
+    add_cond_.notifyAll();
     return task;
 }
 
 // 获取当前任务队列中任务数
 size_t ThreadPool::getSize()
 {
+    MutexLockGuard lock(mutex_);
     return task_queue.size();
 }
 
 // 线程函数，负责执行任务
-void* ThreadPool::threadfun(void* arg)
+void ThreadPool::threadfun()
 {
-    auto pool = static_cast<ThreadPool*>(arg);   // 通过线程参数传递获取线程池实例
-    while (pool->is_running)
+    while (is_running)
     {
-        ThreadPool::Task task = pool->TakeTask();       // 获取任务
+        ThreadPool::Task task = TakeTask();       // 获取任务
         if (!task)
         {
+        #ifdef _DEBUG_
+            std::cout << "no task" << std::endl;
+        #endif
             continue;
         }
         task(); // 执行任务
     }
-    return nullptr;
+    return;
 }
 
 } // namespace xb

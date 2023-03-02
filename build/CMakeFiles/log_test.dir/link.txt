@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/log_test.dir/test/log_test.cpp.o CMakeFiles/log_test.dir/src/Log.cpp.o CMakeFiles/log_test.dir/src/util.cpp.o -o log_test  /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.5.2 -lpthread 

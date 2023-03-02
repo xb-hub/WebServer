@@ -4,10 +4,11 @@
 //#define _DEBUG_
 // #define _DEBUG_MESSAGE_
 //#define _DEBUG_TYPE_
-//#define _DEBUG_HEAD_
+// #define _DEBUG_HEAD_
 
 #include <thread>
 #include <sys/epoll.h>
+#include <fcntl.h>
 #include "MyHttp.h"
 #include "Log.h"
 #include "util.h"
@@ -16,6 +17,14 @@ namespace xb
 {
 
 // static Logger::ptr logger = GET_ROOT_LOGGER();
+
+int setnonblocking(int fd)
+{
+    int old_optin = fcntl(fd, F_GETFL);
+    int new_optin = old_optin | O_NONBLOCK;
+    fcntl(fd, F_SETFL, new_optin);
+    return old_optin;
+}
 
 // 构造函数初始化
 MyHttp::MyHttp(const int port, const std::string& htdocs, int num) :
@@ -26,14 +35,17 @@ MyHttp::MyHttp(const int port, const std::string& htdocs, int num) :
         port_(port),
         MAX_BUF_SIZE(1024)
 {
-    pool = std::make_shared<ThreadPool>("WebSever");
-    pool->start(thread_num_);
+    // pool = std::make_shared<ThreadPool>("WebSever");
+    // pool->start(thread_num_);
+    schedule = std::make_shared<Scheduler>(num, true);
+    schedule->start();
 }
 
 // 析构函数
 MyHttp::~MyHttp()
 {
-    if(pool)    pool->stop();
+    // if(pool)    pool->stop();
+    if(schedule)    schedule->stop();
     close(serverfd_);
 }
 
@@ -65,19 +77,55 @@ int MyHttp::start_up()
     if(listen(serverfd_, 10) < 0)
         return ListenError;
 
-    struct  sockaddr_in client_addr = {0};
-    socklen_t len = sizeof(client_addr);
+    // struct  sockaddr_in client_addr = {0};
+    // socklen_t len = sizeof(client_addr);
 
-    epoll_event events[thread_num_];
-    int epollfd = epoll_create(5);
+    epoll_event events[1024];
+    int epollfd = epoll_create(1);
+    assert(epollfd != -1);
+    
+    epoll_event ev;
+    ev.data.fd = serverfd_;
+    ev.events = EPOLLIN;
+    setnonblocking(serverfd_);
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, serverfd_, &ev);
 
 
     while (true)
     {
-        int clientfd = -1;
-        if ((clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len)) < 0)  continue;
-        LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
-        pool->AddTask(std::bind(&MyHttp::accept_request, this, clientfd));
+        int ret = epoll_wait(epollfd, events, 1024, -1);
+        if(ret < 0)
+        {
+            std::cout << "epoll failure!" << std::endl;
+            break;
+        }
+        for(int i = 0; i < ret; i++)
+        {
+            int sockfd = events[i].data.fd;
+            if(events[i].events & EPOLLIN && sockfd == serverfd_)
+            {
+                struct  sockaddr_in client_addr{0};
+                socklen_t len = sizeof(client_addr);
+                int clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len);
+                epoll_event ev;
+                ev.data.fd = clientfd;
+                // 一定要ET模式，因为只读取head，使用LT模式读取head后要清空缓冲区
+                ev.events = EPOLLIN | EPOLLET;
+                setnonblocking(clientfd);
+                epoll_ctl(epollfd, EPOLL_CTL_ADD, clientfd, &ev);
+            }
+            else if(events[i].events & EPOLLIN)
+            {
+                // std::cout << "solve connection" << std::endl;
+                // pool->AddTask(std::bind(&MyHttp::accept_request, this, sockfd));
+                schedule->addTask(std::bind(&MyHttp::accept_request, this, sockfd));
+            }
+        }
+        // int clientfd = accept(serverfd_, (struct sockaddr *) (&client_addr), &len);
+        // if (clientfd < 0)  continue;
+        // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "accetp request from : %d", clientfd);
+        // schedule->addTask(std::bind(&MyHttp::accept_request, this, clientfd));
+        // pool->AddTask(std::bind(&MyHttp::accept_request, this, clientfd));
     }
 }
 
