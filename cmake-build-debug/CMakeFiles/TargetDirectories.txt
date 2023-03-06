@@ -1,8 +1,0 @@
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/server.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/test.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/log_test.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/yaml_test.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/fiber_test.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/schedule_test.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/xubin/Desktop/WebServer/cmake-build-debug/CMakeFiles/rebuild_cache.dir

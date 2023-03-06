@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/yaml_test.dir/test/yaml_test.cpp.o -o yaml_test  /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.5.2 
