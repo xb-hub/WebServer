@@ -17,8 +17,8 @@
 #include <arpa/inet.h>
 #include <unordered_map>
 #include <memory>
-#include "Coroutine/ThreadPool.h"
-#include "Coroutine/Scheduler.h"
+#include "ThreadPool.h"
+#include "Scheduler.h"
 
 namespace xb
 {

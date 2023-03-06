@@ -226,22 +226,6 @@ class ElapseFormatItem : public LogFormatter::FormatterItem
     }
 };
 
-static std::map<char, LogFormatter::FormatterItem::ptr> m_format_items_map = {
-#define FN(CN, ITEM_NAME) {CN, std::make_shared<ITEM_NAME>()}
-            FN('p', LevelFormatItem),
-            FN('f', FilenameFormatItem),
-            FN('d', TimeFormatItem),
-            FN('t', ThreadIdFormatItem),
-            FN('f', FiberIdFormatItem),
-            FN('m', ContentFormatItem),
-            FN('l', LineFormatItem),
-            FN('n', NewLineFormatItem),
-            FN('%', PercentSignFormatItem),
-            FN('T', TabFormatItem),
-            FN('r', ElapseFormatItem)
-#undef FN
-};
-
 LogFormatter::LogFormatter(const std::string pattern) :
     m_pattern(pattern)
 {
@@ -250,6 +234,21 @@ LogFormatter::LogFormatter(const std::string pattern) :
 
 void LogFormatter::init()
 {
+    static std::map<char, LogFormatter::FormatterItem::ptr> m_format_items_map = {
+    #define FN(CN, ITEM_NAME) {CN, std::make_shared<ITEM_NAME>()}
+                FN('p', LevelFormatItem),
+                FN('f', FilenameFormatItem),
+                FN('d', TimeFormatItem),
+                FN('t', ThreadIdFormatItem),
+                FN('f', FiberIdFormatItem),
+                FN('m', ContentFormatItem),
+                FN('l', LineFormatItem),
+                FN('n', NewLineFormatItem),
+                FN('%', PercentSignFormatItem),
+                FN('T', TabFormatItem),
+                FN('r', ElapseFormatItem)
+    #undef FN
+    };
     STR_STAUTS stauts = COMMON_STR;
     for(size_t i = 0; i < m_pattern.size(); i++)
     {
@@ -258,7 +257,7 @@ void LogFormatter::init()
         {
             case COMMON_STR:
             {
-                while(m_pattern[i] != '%')
+                while(i < m_pattern.size() && m_pattern[i] != '%')
                 {
                     str += m_pattern[i];
                     i++;
@@ -269,14 +268,13 @@ void LogFormatter::init()
             }
             case FORMAT_STR:
             {
-                auto iter = m_format_items_map.find(m_pattern[i]);
-                if(iter == m_format_items_map.end())
+                if(m_format_items_map.find(m_pattern[i]) == m_format_items_map.end())
                 {
-                    m_items_list.push_back(std::make_shared<CommonStrFormatItem>("error format!\n"));
+                    m_items_list.push_back(std::make_shared<CommonStrFormatItem>("error format!"));
                 }
                 else
                 {
-                    m_items_list.push_back(iter->second);
+                    m_items_list.push_back(m_format_items_map[m_pattern[i]]);
                 }
                 stauts = COMMON_STR;
                 break;
@@ -307,7 +305,7 @@ void __LoggerManager::init()
     auto config_log_list = config->getValue();
     for(const auto& log_config : config_log_list)
     {
-        m_logger_map.erase(log_config.name);
+        // m_logger_map.erase(log_config.name);
         auto logger = std::make_shared<Logger>(log_config.name, log_config.level);
         for(const auto& appender_config : log_config.appender)
         {

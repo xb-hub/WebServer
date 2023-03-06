@@ -11,7 +11,7 @@ include_directories(
         ${YAML_CPP_INCLUDE_DIRS}
 )
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 set(SOURCE_LIST server.cpp src/MyHttp.cpp src/ThreadPool.cpp src/Thread.cpp src/Scheduler.cpp src/Coroutine.cpp src/Log.cpp src/util.cpp)
 
@@ -35,3 +35,6 @@ target_link_libraries(fiber_test Threads::Threads yaml-cpp)
 
 add_executable(schedule_test test/schedule_test.cpp src/Scheduler.cpp src/Coroutine.cpp src/Thread.cpp src/Log.cpp src/util.cpp)
 target_link_libraries(schedule_test Threads::Threads yaml-cpp)
+
+add_executable(io_test test/iomanager_test.cpp src/Timer.cpp src/Scheduler.cpp src/IOManager.cpp src/Coroutine.cpp src/Thread.cpp src/Log.cpp src/util.cpp)
+target_link_libraries(io_test Threads::Threads yaml-cpp)

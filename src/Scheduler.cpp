@@ -1,3 +1,4 @@
+#define LOG
 #include <assert.h>
 #include "Scheduler.h"
 #include "util.h"
@@ -5,13 +6,17 @@
 namespace xb
 {
 
-// static Logger::ptr system_logger = GET_LOGGER("system");
 thread_local Coroutine* Scheduler::current_root_routine_ = nullptr;
 thread_local Scheduler* Scheduler::current_schedule_ = nullptr;
 
 Scheduler* Scheduler::GetThis()
 {
     return current_schedule_;
+}
+
+void Scheduler::setThis()
+{
+    current_schedule_ = this;
 }
 
 Coroutine* Scheduler::GetRootRoutine()
@@ -29,17 +34,16 @@ Scheduler::Scheduler(size_t thread_num, bool usecall, const std::string name) :
     name_(std::move(name)),
     running_(false),
     mutex_(),
-    take_cond_(mutex_),
-    add_cond_(mutex_),
     exec_thread_num_(0)
 {
     if(usecall)
     {
         // 创建主协程
         Coroutine::GetThis();
+        --thread_num;
         assert(GetThis() == nullptr);
         current_schedule_ = this;
-        root_routine_ = std::make_shared<Coroutine>(std::bind(&Scheduler::run, this));
+        root_routine_ = std::make_shared<Coroutine>(std::bind(&Scheduler::run, this), true, 0);
         current_root_routine_ = root_routine_.get();
         root_threadID_ = GetThreadId();
     }
@@ -52,8 +56,9 @@ Scheduler::Scheduler(size_t thread_num, bool usecall, const std::string name) :
 
 Scheduler::~Scheduler()
 {
-    // LOG_DEBUG(system_logger, "调用 Scheduler::~Scheduler()");
-    // std::cout << "调用 Scheduler::~Scheduler()" << std::endl;
+#ifdef LOG
+    LOG_DEBUG(stdout_logger, "调用 Scheduler::~Scheduler()");
+#endif
     if(GetThis() == this)
     {
         current_schedule_ = nullptr;
@@ -62,8 +67,9 @@ Scheduler::~Scheduler()
 
 void Scheduler::start()
 {
-    // LOG_DEBUG(system_logger, "调用 Scheduler::start()");
-    // std::cout << "调用 Scheduler::start()" << std::endl;
+#ifdef LOG
+    LOG_DEBUG(stdout_logger, "调用 Scheduler::start()");
+#endif
     if (running_)
     {   // 调度器已经开始工作
         return;
@@ -79,37 +85,47 @@ void Scheduler::start()
 
 void Scheduler::stop()
 {
-    // LOG_DEBUG(system_logger, "调用 Scheduler::stop()");
-    // std::cout << "调用 Scheduler::stop()" << std::endl;
-    if(root_routine_ && thread_num_ == 0 && root_routine_->finish() || root_routine_->getState() == Coroutine::INIT)
+#ifdef LOG
+    LOG_DEBUG(stdout_logger, "调用 Scheduler::stop()");
+#endif
+    if(root_routine_ && thread_num_ == 0 && (root_routine_->finish() || root_routine_->state_ == Coroutine::INIT))
     {
         running_ = false;
-        if(isStop())    return;
+        if(CanStop())    return;
     }
+    if(root_threadID_ != -1)    assert(GetThis() == this);
+    else    assert(GetThis() != this);
+
     running_ = false;
+    for(size_t i = 0; i < thread_num_; ++i) {
+        tickle();     // 类似于信号量，唤醒
+    }
+
+    if(root_routine_) {
+        tickle();
+    }
 
     if (root_routine_)
     {
-        if (!isStop())
+        if (!CanStop())
         {
             root_routine_->call();
         }
     }
 
-    { // join 所有子线程
-        for (auto& t : thread_list_)
-        {
-            t->join();
-        }
-        thread_list_.clear();
-    }
-    if (isStop())
+    std::vector<Thread::ptr> thrs;
     {
-        return;
+        MutexLockGuard lock(mutex_);
+        thrs.swap(thread_list_);
+    }
+    
+    for (auto& t : thrs)
+    {
+        t->join();
     }
 }
 
-bool Scheduler::isStop()
+bool Scheduler::CanStop()
 {
     MutexLockGuard lock(mutex_);
     return task_list_.empty() && exec_thread_num_ == 0 && !running_;
@@ -117,26 +133,29 @@ bool Scheduler::isStop()
 
 void Scheduler::onIdel()
 {
-    while(!isStop())
+#ifdef LOG
+    LOG_DEBUG(stdout_logger, "调用 Scheduler::onIdel()");
+#endif
+    while(!CanStop())
     {
         Coroutine::Yield2Hold();
     }
 }
 
-void Scheduler::tick()
+void Scheduler::tickle()
 {
-    
+#ifdef LOG
+    LOG_DEBUG(stdout_logger, "调用 Scheduler::tickle()");
+#endif
 }
 
-Scheduler::Task* Scheduler::takeTask()
-{
-}
 
 void Scheduler::run()
 {
-    // LOG_DEBUG(system_logger, "调用 Scheduler::run()");
-    // std::cout << "调用 Scheduler::run()" << GetThreadId() << std::endl;
-    current_schedule_ = this;
+#ifdef LOG
+    LOG_DEBUG(stdout_logger, "调用 Scheduler::run()");
+#endif
+    setThis();
     if(GetThreadId() != root_threadID_)
     {
         // 给每个线程创建主协程
@@ -144,30 +163,42 @@ void Scheduler::run()
     }
     auto idle_routine = std::make_shared<Coroutine>(std::bind(&Scheduler::onIdel, this));
     Task task;
-    while(running_)
+    while(true)
     {
         task.reset();
+        bool is_active = false;
+        bool is_tickle = false;
         {
             // 作用域锁
             MutexLockGuard lock(mutex_);
-            for(auto it = task_list_.begin(); it != task_list_.end(); ++it)
+            auto it = task_list_.begin();
+            while(it != task_list_.end())
             {
                 // 任务指定特定线程执行，但不是当前线程
                 if((*it)->threadID_ != -1 && (*it)->threadID_ != GetThreadId())
                 {
+                    ++it;
+                    is_tickle = true;
                     continue;
                 }
                 assert((*it)->func_ || (*it)->routine_);
                 // 协程正在执行
-                if((*it)->routine_ && (*it)->routine_->getState() == Coroutine::EXEC)
+                if((*it)->routine_ && (*it)->routine_->state_ == Coroutine::EXEC)
                 {
+                    ++it;
                     continue;
                 }
                 task = **it;
                 ++exec_thread_num_;
                 task_list_.erase(it);
+                is_active = true;
                 break;
             }
+            is_tickle |= it != task_list_.end();
+        }
+        if(is_tickle)
+        {
+            tickle();
         }
         // 如果任务是函数，构造协程
         if(task.func_)
@@ -178,7 +209,8 @@ void Scheduler::run()
         }
         if(task.routine_ && !task.routine_->finish())
         {
-            // std::cout << "执行协程" << std::endl;
+            // LOG_INFO(stdout_logger, "执行协程");
+            // std::cout <<  << std::endl;
             // if(GetThreadId() == main_threadID_)
             // {
             //     std::cout << "size: " << task_list_.size() << std::endl;
@@ -188,12 +220,12 @@ void Scheduler::run()
             task.routine_->swapIn();
             --exec_thread_num_;
             
-            Coroutine::CoroutineState state = task.routine_->getState();
+            Coroutine::CoroutineState state = task.routine_->state_;
             if(state == Coroutine::READY)
             {
                 addTask(std::move(task.routine_), task.threadID_);
             }
-            else if(state == Coroutine::EXCEPTION)
+            else if(!task.routine_->finish())
             {
                 task.routine_->state_ = Coroutine::HOLD;
             }
@@ -201,15 +233,27 @@ void Scheduler::run()
         }
         else    // 任务队列为空
         {
-            // std::cout << "empty" << std::endl;
-            if(idle_routine->finish())
+            // LOG_FMT_INFO(stdout_logger, "task_list: %d,  exec_thread_num_: %d,  running_: %d, state: %d", task_list_.size(), exec_thread_num_, (int)running_, (int)idle_routine->state_);
+            if(is_active)
+            {
+                // LOG_INFO(stdout_logger, "idle fiber activate");
+                --exec_thread_num_;
+                continue;
+            }
+            if(idle_routine->state_ == Coroutine::TERM)
             {
                 break;
             }
+            ++idle_thread_num_;
             idle_routine->swapIn();
-            if(!idle_routine->finish()) idle_routine->state_ = Coroutine::HOLD;
+            // LOG_FMT_INFO(stdout_logger, "state: %d",(int)idle_routine->state_);
+            --idle_thread_num_;
+            if(!idle_routine->finish())
+            {
+                // LOG_INFO(stdout_logger, "idle fiber HOLD");
+                idle_routine->state_ = Coroutine::HOLD;
+            }
         }
-        // std::cout << "finish" << std::endl;
     }
 }
 

@@ -12,7 +12,7 @@
 #include <vector>
 #include <list>
 #include "Singleton.h"
-#include "Coroutine/Thread.h"
+#include "Thread.h"
 
 namespace xb
 {

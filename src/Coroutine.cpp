@@ -1,10 +1,14 @@
 #include "Coroutine.h"
 #include "Log.h"
 #include "Scheduler.h"
-#include <opencv2/opencv.hpp>
+#include "util.h"
 
 namespace xb
 {
+
+thread_local Coroutine* Coroutine::current_coroutine = nullptr;
+thread_local Coroutine::ptr Coroutine::pre_coroutine_ptr{};
+std::atomic_uint32_t Coroutine::CoroutineNum_{0};
 
 class StackAllocator
 {
@@ -20,11 +24,7 @@ public:
     }
 };
 
-thread_local Coroutine* Coroutine::current_coroutine = nullptr;
-thread_local Coroutine::ptr Coroutine::main_coroutine_ptr{};
-std::atomic_uint32_t Coroutine::CoroutineID_{0};
-
-Coroutine::Coroutine():
+Coroutine::Coroutine() :
         stack_(nullptr),
         state_(EXEC),
         func_(),
@@ -38,13 +38,15 @@ Coroutine::Coroutine():
     {
             LOG_ERROR(GET_ROOT_LOGGER(),"get context failure!");
     }
-    coroutineId_++;
+    ++CoroutineNum_;
+    coroutineId_ = CoroutineNum_;
+    LOG_FMT_DEBUG(stdout_logger, "创建主协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
 }
 
 
-Coroutine::Coroutine(CoroutineFunc func, uint64_t stack_size) :
+Coroutine::Coroutine(CoroutineFunc func, bool use_caller, uint64_t stack_size) :
         func_(std::move(func)),
-        stack_size_(1024*1024),
+        stack_size_(100*1024),
         state_(INIT),
         stack_(nullptr),
         context_()
@@ -61,8 +63,17 @@ Coroutine::Coroutine(CoroutineFunc func, uint64_t stack_size) :
     context_.uc_stack.ss_sp = stack_;
     context_.uc_stack.ss_size = stack_size_;
 
-    makecontext(&context_, &Coroutine::MainFunc, 0);
-    coroutineId_++;
+    if(use_caller)
+    {
+        makecontext(&context_, &Coroutine::CallMainFunc, 0);
+    }
+    else
+    {
+        makecontext(&context_, &Coroutine::MainFunc, 0);
+    }
+    ++CoroutineNum_;
+    coroutineId_ = CoroutineNum_;
+    LOG_FMT_DEBUG(stdout_logger, "创建子协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
 }
 
 Coroutine::~Coroutine()
@@ -82,6 +93,8 @@ Coroutine::~Coroutine()
             setThis(nullptr);
         }
     }
+    --CoroutineNum_;
+    LOG_FMT_DEBUG(stdout_logger, "销毁协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
 }
 
 void Coroutine::setThis(Coroutine* coroutine)
@@ -97,8 +110,8 @@ Coroutine::ptr Coroutine::GetThis()
         return Coroutine::current_coroutine->shared_from_this();
     }
     // 创建主协程
-    Coroutine::main_coroutine_ptr.reset(new Coroutine());
-    return Coroutine::main_coroutine_ptr->shared_from_this();
+    Coroutine::pre_coroutine_ptr.reset(new Coroutine());
+    return Coroutine::current_coroutine->shared_from_this();
 }
 
 void Coroutine::reset(CoroutineFunc func)
@@ -121,11 +134,12 @@ void Coroutine::reset(CoroutineFunc func)
 void Coroutine::call()
 {
     // 主协程切换到子协程
-    assert(state_ == INIT || state_ == READY || state_ == HOLD);
+    assert(state_ != EXEC);
     setThis(this);
     state_ = EXEC;
+    LOG_FMT_DEBUG(stdout_logger, "call pre_coroutine_ptr: [%d]  %d->%d", GetThreadId(), Coroutine::pre_coroutine_ptr->coroutineId_, coroutineId_);
     // 当前线程的主协程切换到子协程，保存当前上下文到主协程
-    if(swapcontext(&Coroutine::main_coroutine_ptr->context_, &context_))
+    if(swapcontext(&Coroutine::pre_coroutine_ptr->context_, &context_))
     {
         LOG_ERROR(GET_ROOT_LOGGER(), "swapIn failure!");
     }
@@ -135,9 +149,10 @@ void Coroutine::back()
 {
     // 子协程切换到主协程
     assert(stack_);
-    setThis(Coroutine::main_coroutine_ptr.get());
+    setThis(Coroutine::pre_coroutine_ptr.get());
+    LOG_FMT_DEBUG(stdout_logger, "back pre_coroutine_ptr: [%d]  %d->%d", GetThreadId(), coroutineId_, Coroutine::pre_coroutine_ptr->coroutineId_);
     // 当前线程的子协程切换到主协程，保存当前上下文到子协程;
-    if(swapcontext(&context_, &Coroutine::main_coroutine_ptr->context_))
+    if(swapcontext(&context_, &Coroutine::pre_coroutine_ptr->context_))
     {
         LOG_ERROR(GET_ROOT_LOGGER(), "swapOut failure!");
     }
@@ -146,9 +161,10 @@ void Coroutine::back()
 void Coroutine::swapIn()
 {
     // 主协程切换到子协程
-    assert(state_ == INIT || state_ == READY || state_ == HOLD);
+    assert(state_ != EXEC);
     setThis(this);
     state_ = EXEC;
+    LOG_FMT_DEBUG(stdout_logger, "swapIn RootRoutineID: [%d]  %d->%d", GetThreadId(), Scheduler::GetRootRoutine()->coroutineId_, coroutineId_);
     // 主线程的主协程切换到当前协程，保存当前上下文到主协程
     if(swapcontext(&(Scheduler::GetRootRoutine()->context_), &context_))
     {
@@ -161,6 +177,7 @@ void Coroutine::swapOut()
     // 子协程切换到主协程
     assert(stack_);
     setThis(Scheduler::GetRootRoutine());
+    LOG_FMT_DEBUG(stdout_logger, "swapOut RootRoutineID: [%d]  %d->%d", GetThreadId(), coroutineId_, Scheduler::GetRootRoutine()->coroutineId_);
     // 当前协程切换到主线程主协程，保存当前上下文到子协程;
     if(swapcontext(&context_, &(Scheduler::GetRootRoutine()->context_)))
     {
@@ -178,13 +195,38 @@ void Coroutine::Yield2Hold()
 void Coroutine::Yield()
 {
     Coroutine::ptr cur = GetThis();
-    cur->state_ = HOLD;
-    cur->back();
+    cur->state_ = READY;
+    cur->swapOut();
 }
 
 void Coroutine::MainFunc()
 {
     // std::cout << "routine start" << std::endl;
+    Coroutine::ptr cur = GetThis();
+    cur->func_();
+    try
+    {
+        ;
+        cur->func_ = nullptr;
+        cur->state_ = TERM;
+        // LOG_INFO(stdout_logger, "idle fiber term");
+    }
+    catch(const std::exception& e)
+    {
+        cur->state_ = EXCEPTION;
+        LOG_ERROR(stdout_logger, "exec function failure!");
+    }
+    // 释放share_ptr引用计数，否则cur永远无法释放。
+    Coroutine* ptr = cur.get();
+    cur.reset();
+    // LOG_INFO(stdout_logger, "swapOut Main");
+    ptr->swapOut();
+
+    assert(false && "finish");
+}
+
+void Coroutine::CallMainFunc()
+{
     Coroutine::ptr cur = GetThis();
     try
     {
@@ -192,28 +234,16 @@ void Coroutine::MainFunc()
         cur->func_ = nullptr;
         cur->state_ = TERM;
     }
-    catch(std::exception& e)
+    catch(const std::exception& e)
     {
         cur->state_ = EXCEPTION;
-        LOG_ERROR(GET_ROOT_LOGGER(), "exec function failure!");
+        LOG_ERROR(stdout_logger, "exec function failure!");
     }
     // 释放share_ptr引用计数，否则cur永远无法释放。
     Coroutine* ptr = cur.get();
     cur.reset();
-    if (Scheduler::GetThis() &&
-        Scheduler::GetThis()->getRootThreadId() == GetThreadId() &&
-        Scheduler::GetThis()->GetRootRoutine() != ptr)
-    { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
-        // 如果是主线程，将切换到主线程中的主协程
-        ptr->swapOut();
-    }
-    else
-    {
-        // 如果是线程池中的线程，切换到当前线程中的主协程
-        ptr->back();
-    }
     ptr->back();
-    // ptr->swapOut();
+
     assert(false && "finish");
 }
 

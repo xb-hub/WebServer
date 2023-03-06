@@ -6,13 +6,12 @@
 #include <ucontext.h>
 #include <boost/noncopyable.hpp>
 #include <atomic>
-
-#include "Coroutine/Processer.h"
+#include "Log.h"
 
 namespace xb
 {
     
-class Coroutine : public std::enable_shared_from_this<Coroutine>, boost::noncopyable
+class Coroutine : public std::enable_shared_from_this<Coroutine>
 {
 public:
     friend class Scheduler;
@@ -34,10 +33,11 @@ private:
     void setThis(Coroutine* coroutine);
 
 public:
-    explicit Coroutine(CoroutineFunc func, uint64_t stack_size = 0);
+    explicit Coroutine(CoroutineFunc func, bool use_caller = false, uint64_t stack_size = 0);
     ~Coroutine();
 
-    CoroutineState getState() { return state_; }
+    // CoroutineState getState() { return state_; }
+    uint64_t getId() { return coroutineId_; }
 
     // 重置协程函数
     void reset(CoroutineFunc func);
@@ -52,6 +52,7 @@ public:
     static void Yield2Hold();
 
     static void MainFunc();
+    static void CallMainFunc();
 
     bool finish();
 
@@ -61,12 +62,12 @@ private:
     ucontext_t context_;        // 上下文
     CoroutineFunc func_;        // 执行函数
     CoroutineState state_;      // 协程状态
-    char* stack_;               // 协程栈
-    Processer::ptr proc_;       // 协程管理器
+    void* stack_;               // 协程栈
+    // Processer::ptr proc_;       // 协程管理器
 
     static thread_local Coroutine* current_coroutine;
-    static thread_local Coroutine::ptr main_coroutine_ptr;
-    static std::atomic_uint32_t CoroutineID_;
+    static thread_local Coroutine::ptr pre_coroutine_ptr;
+    static std::atomic_uint32_t CoroutineNum_;
 
 };
     

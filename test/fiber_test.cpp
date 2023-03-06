@@ -50,7 +50,7 @@ int main(int, char**)
 {
    xb::Coroutine::GetThis();
    {
-       auto fiber = std::make_shared<xb::Coroutine>(fiberFunc);
+       auto fiber = std::make_shared<xb::Coroutine>(fiberFunc, true);
        std::cout << "换入协程，打印斐波那契数列" << std::endl;
        fiber->call();
        while (fib < 100 && !fiber->finish())

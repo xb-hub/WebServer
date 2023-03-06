@@ -8,11 +8,16 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <pthread.h>
+#include <stdint.h>
 
 namespace xb
 {
 
 pid_t GetThreadId();
+
+uint64_t GetCurrentMS();
+
+uint64_t GetCurrentUS();
 
 }
 

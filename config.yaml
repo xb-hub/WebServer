@@ -3,20 +3,20 @@ logs:
     level: 0
     appender:
       - type: 1
-        formatter: "[%d] [%t] [%p] [%f:%l]%T%m%n"
+        formatter: "[%d] [%p] [%f:%l]%T [%t] %m%n"
         file: "/home/xubin/Desktop/WebServer/log/test_root_log.txt"
   - name: file
     level: 4
     appender:
       - type: 1
-        formatter: "[%d] [%t] [%p] [%f:%l]%T%m%n"
+        formatter: "[%d] [%p] [%f:%l]%T [%t] %m%n"
         file: "/home/xubin/Websever/log/logtest_file_log.txt"
-  - name: system
-    level: 4
-    formatter: "[%d] [%p] [%f]%T%m%n"
+  - name: stdout
+    level: 0
     appender:
-      - type: 1
-        file: /home/log/sftest_system_log.txt
+      - type: 0
+        formatter: "[%d] [%p] [%f:%l] [%t] %T%m%n"
+        # file: "/home/xubin/Desktop/WebServer/log/test_root_log.txt"
 
 
 system:

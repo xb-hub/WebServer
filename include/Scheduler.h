@@ -1,15 +1,17 @@
 #ifndef _SCHEDULE_H_
 #define _SCHEDULE_H_
+// #define LOG
 #include <vector>
 #include <list>
 
 
-#include "Coroutine/Thread.h"
-#include "Log/Log.h"
-#include "Coroutine/Coroutine.h"
+#include "Thread.h"
+#include "Log.h"
+#include "Coroutine.h"
 
 namespace xb
 {
+static xb::Logger::ptr stdout_logger = GET_LOGGER("stdout");
 
 class Scheduler
 {
@@ -58,9 +60,9 @@ public:
     };
 
 public:
-    friend class Fiber;
+    friend class Coroutine;
 
-    Scheduler(size_t thread_num, bool usecall, const std::string name = "");
+    Scheduler(size_t thread_num, bool usecall = false, const std::string name = "");
     virtual ~Scheduler();
 
     void start();
@@ -68,37 +70,68 @@ public:
     void run();
 
     pid_t getRootThreadId();
+    const std::string& getName() const { return name_; }
 
     static Coroutine* GetRootRoutine();
     static Scheduler* GetThis();
+    void setThis();
 
     template<typename Executable>
-    void addTask(Executable&& callback, pid_t threadID = -1, bool prior = false)
+    void addTask(Executable&& callback, pid_t threadID = -1)
     {
-        MutexLockGuard lock(mutex_);
-        Task::ptr task = std::make_shared<Task>(std::forward<Executable>(callback), threadID);
-        if(task->routine_ || task->func_)
+    #ifdef LOG
+        LOG_INFO(stdout_logger, "调用 Scheduler::AddTask()");
+    #endif
+        bool is_tickle = false;
         {
-            if(prior)   task_list_.push_front(task);
-            else        task_list_.push_back(task);   
+            MutexLockGuard lock(mutex_);
+            Task::ptr task = std::make_shared<Task>(std::forward<Executable>(callback), threadID);
+            is_tickle = task_list_.empty();
+            if(task->routine_ || task->func_)
+            {
+                task_list_.push_back(task);   
+            }
         }
+        if(is_tickle)  tickle();
+    }
+
+    template<typename InputIterator>
+    void addTask(InputIterator begin, InputIterator end)
+    {
+    #ifdef LOG
+        LOG_INFO(stdout_logger, "调用 Scheduler::AddTask()");
+    #endif
+        bool is_tickle = false;
+        {
+            MutexLockGuard lock(mutex_);
+            while(begin != end)
+            {
+                Task::ptr task = std::make_shared<Task>(*begin, -1);
+                is_tickle = task_list_.empty() || is_tickle;
+                if(task->routine_ || task->func_)
+                {
+                    task_list_.push_back(task);   
+                }
+                ++begin;
+            }
+        }
+        if(is_tickle)  tickle();
     }
 
 protected:
     virtual void onIdel();
-    virtual bool isStop();
-    virtual void tick();
+    virtual bool CanStop();
+    virtual void tickle();
 
-private:
-    Task* takeTask();
+    bool hasIdleThread() { return idle_thread_num_ > 0; }
     
 private:
+    std::string name_;
     MutexLock mutex_;
-    Condition take_cond_, add_cond_;
 
     size_t exec_thread_num_;
+    size_t idle_thread_num_;
 
-    const std::string name_;
     pid_t root_threadID_;
 
     std::vector<Thread::ptr> thread_list_;
