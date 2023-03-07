@@ -30,8 +30,8 @@ target_link_libraries(log_test Threads::Threads yaml-cpp)
 add_executable(yaml_test test/yaml_test.cpp)
 target_link_libraries(yaml_test yaml-cpp)
 
-add_executable(fiber_test test/fiber_test.cpp src/Scheduler.cpp src/Coroutine.cpp src/Log.cpp src/util.cpp  src/Thread.cpp)
-target_link_libraries(fiber_test Threads::Threads yaml-cpp)
+add_executable(coroutine_test test/coroutine_test.cpp src/Scheduler.cpp src/Coroutine.cpp src/Log.cpp src/util.cpp  src/Thread.cpp)
+target_link_libraries(coroutine_test Threads::Threads yaml-cpp)
 
 add_executable(schedule_test test/schedule_test.cpp src/Scheduler.cpp src/Coroutine.cpp src/Thread.cpp src/Log.cpp src/util.cpp)
 target_link_libraries(schedule_test Threads::Threads yaml-cpp)

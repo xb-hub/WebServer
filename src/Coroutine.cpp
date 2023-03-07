@@ -40,7 +40,7 @@ Coroutine::Coroutine() :
     }
     ++CoroutineNum_;
     coroutineId_ = CoroutineNum_;
-    LOG_FMT_DEBUG(stdout_logger, "创建主协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
+    // LOG_FMT_DEBUG(stdout_logger, "创建主协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
 }
 
 
@@ -73,7 +73,7 @@ Coroutine::Coroutine(CoroutineFunc func, bool use_caller, uint64_t stack_size) :
     }
     ++CoroutineNum_;
     coroutineId_ = CoroutineNum_;
-    LOG_FMT_DEBUG(stdout_logger, "创建子协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
+    // LOG_FMT_DEBUG(stdout_logger, "创建子协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
 }
 
 Coroutine::~Coroutine()
@@ -94,7 +94,7 @@ Coroutine::~Coroutine()
         }
     }
     --CoroutineNum_;
-    LOG_FMT_DEBUG(stdout_logger, "销毁协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
+    // LOG_FMT_DEBUG(stdout_logger, "销毁协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
 }
 
 void Coroutine::setThis(Coroutine* coroutine)
@@ -203,10 +203,9 @@ void Coroutine::MainFunc()
 {
     // std::cout << "routine start" << std::endl;
     Coroutine::ptr cur = GetThis();
-    cur->func_();
     try
     {
-        ;
+        cur->func_();
         cur->func_ = nullptr;
         cur->state_ = TERM;
         // LOG_INFO(stdout_logger, "idle fiber term");

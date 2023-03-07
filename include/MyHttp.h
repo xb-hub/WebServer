@@ -19,6 +19,7 @@
 #include <memory>
 #include "ThreadPool.h"
 #include "Scheduler.h"
+#include "IOManager.h"
 
 namespace xb
 {
@@ -77,6 +78,7 @@ private:
 
     ThreadPool::ptr pool;
     Scheduler::ptr schedule;
+    // IOManager::ptr iomanager_;
 
 protected:
     const int MAX_BUF_SIZE; // 缓冲区最大空间

@@ -63,7 +63,7 @@ bool Timer::refresh()
 
 bool Timer::reset(uint64_t ms, bool now)
 {
-    if(ms = ms_ && !now)    return true;
+    if(ms == ms_ && !now)    return true;
     MutexLockGuard lock(manager_->mutex_);
     if(!func_)  return false;
     auto it = manager_->timer_list_.find(shared_from_this());
@@ -78,7 +78,7 @@ bool Timer::reset(uint64_t ms, bool now)
         start = next_ - ms_;
     }
     ms_ = ms;
-    next_ = start + ms_;
+    next_ = start + ms;
     manager_->addTimer(shared_from_this());
     return true;
 }
@@ -140,20 +140,22 @@ uint64_t TimerManager::getNextTimer()
 void TimerManager::listExpiredCb(std::vector<std::function<void()> >& func) {
     uint64_t now_ms = GetCurrentMS();
     std::vector<Timer::ptr> expired;
-    MutexLockGuard lock(mutex_);
-    if(timer_list_.empty())    return;
-    bool rollover = detectClockRollover(now_ms);
-    if(!rollover && ((*timer_list_.begin())->next_ > now_ms)) {
-        return;
-    }
+    {
+        MutexLockGuard lock(mutex_);
+        if(timer_list_.empty())    return;
+        bool rollover = detectClockRollover(now_ms);
+        if(!rollover && ((*timer_list_.begin())->next_ > now_ms)) {
+            return;
+        }
 
-    Timer::ptr now_timer(new Timer(now_ms));
-    auto it = rollover ? timer_list_.end() : timer_list_.lower_bound(now_timer);
-    while(it != timer_list_.end() && (*it)->next_ == now_ms) {
-        ++it;
+        Timer::ptr now_timer(new Timer(now_ms));
+        auto it = rollover ? timer_list_.end() : timer_list_.lower_bound(now_timer);
+        while(it != timer_list_.end() && (*it)->next_ == now_ms) {
+            ++it;
+        }
+        expired.insert(expired.begin(), timer_list_.begin(), it);
+        timer_list_.erase(timer_list_.begin(), it);
     }
-    expired.insert(expired.begin(), timer_list_.begin(), it);
-    timer_list_.erase(timer_list_.begin(), it);
     func.reserve(expired.size());
 
     for(auto& timer : expired) {

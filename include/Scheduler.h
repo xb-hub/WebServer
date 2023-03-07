@@ -62,7 +62,7 @@ public:
 public:
     friend class Coroutine;
 
-    Scheduler(size_t thread_num, bool usecall = false, const std::string name = "");
+    Scheduler(size_t thread_num, bool usecall = true, const std::string name = "");
     virtual ~Scheduler();
 
     void start();
@@ -77,7 +77,7 @@ public:
     void setThis();
 
     template<typename Executable>
-    void addTask(Executable&& callback, pid_t threadID = -1)
+    void addTask(Executable callback, int threadID = -1)
     {
     #ifdef LOG
         LOG_INFO(stdout_logger, "调用 Scheduler::AddTask()");
@@ -85,7 +85,7 @@ public:
         bool is_tickle = false;
         {
             MutexLockGuard lock(mutex_);
-            Task::ptr task = std::make_shared<Task>(std::forward<Executable>(callback), threadID);
+            Task::ptr task = std::make_shared<Task>(callback, threadID);
             is_tickle = task_list_.empty();
             if(task->routine_ || task->func_)
             {

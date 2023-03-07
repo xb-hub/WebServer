@@ -91,7 +91,7 @@ IOManager* IOManager::GetThis()
     return dynamic_cast<IOManager*>(Scheduler::GetThis());
 }
 
-void IOManager::addEvent(int fd, FdEventType event, std::function<void()> callback)
+int IOManager::addEvent(int fd, FdEventType event, std::function<void()> callback)
 {
     LOG_DEBUG(stdout_logger, "调用 IOManager::addEvent()");
     FdContext* fd_ctx = nullptr;
@@ -115,7 +115,7 @@ void IOManager::addEvent(int fd, FdEventType event, std::function<void()> callba
     if(rt)
     {
         LOG_DEBUG(stdout_logger, "事件注册失败");
-        return;
+        return -1;
     }
     LOG_FMT_DEBUG(stdout_logger, "事件注册 sock=%d", fd);
     ++evnet_num_;
@@ -134,7 +134,7 @@ void IOManager::addEvent(int fd, FdEventType event, std::function<void()> callba
     {
         event_handler.routine = Coroutine::GetThis();
     }
-    return;
+    return 0;
 }
 
 bool IOManager::removeEvent(int fd, FdEventType type)
@@ -293,6 +293,7 @@ void IOManager::onIdel()
             } else {
                 next_timeout = MAX_TIMEOUT;
             }
+            // LOG_INFO(stdout_logger, " epoll wait");
             rt = epoll_wait(epollfd_, events, MAX_EVENTS_NUM_, (int)next_timeout);
             if(rt == -1 && errno == EINTR)
             {

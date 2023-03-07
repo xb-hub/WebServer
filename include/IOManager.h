@@ -51,7 +51,7 @@ public:
     IOManager(size_t thread_num, bool use_call = true, const std::string& name = "");
     ~IOManager();
 
-    void addEvent(int fd, FdEventType event, std::function<void()> callback);
+    int addEvent(int fd, FdEventType event, std::function<void()> callback = nullptr);
     bool removeEvent(int fd, FdEventType event_type);
     bool cancelEvent(int fd, FdEventType event_type);
     bool cancelAll(int fd);
