@@ -7,21 +7,21 @@
 
 namespace xb
 {
-    template<class T>
+    template <class T>
     class Singleton
     {
     private:
         Singleton() = default;
 
     public:
-        static T& getInstance()
+        static T &getInstance()
         {
             static T instance;
             return instance;
         }
     };
 
-    template<typename T>
+    template <typename T>
     class SingletonPtr final
     {
     private:

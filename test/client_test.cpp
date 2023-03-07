@@ -15,7 +15,7 @@ int main()
     char buf[1024];
     char response[1024];
     u_short port = (u_short)4000;
-    if((clientfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+    if ((clientfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
     {
         printf("socket creat fail!");
         return -1;
@@ -23,7 +23,7 @@ int main()
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    if(connect(clientfd, (const struct sockaddr *)&addr, sizeof(addr)) == -1)
+    if (connect(clientfd, (const struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
         printf("connect fail!");
         return -1;

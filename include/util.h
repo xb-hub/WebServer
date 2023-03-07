@@ -13,11 +13,11 @@
 namespace xb
 {
 
-pid_t GetThreadId();
+    pid_t GetThreadId();
 
-uint64_t GetCurrentMS();
+    uint64_t GetCurrentMS();
 
-uint64_t GetCurrentUS();
+    uint64_t GetCurrentUS();
 
 }
 

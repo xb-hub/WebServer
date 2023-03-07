@@ -6,11 +6,11 @@ using namespace xb;
 class MyTask
 {
 public:
-    MyTask(){}
+    MyTask() {}
 
-    int run(int i, const char* p)
+    int run(int i, const char *p)
     {
-        printf("thread[%lu] : (%d, %s)\n", pthread_self(), i, (char*)p);
+        printf("thread[%lu] : (%d, %s)\n", pthread_self(), i, (char *)p);
         sleep(1);
         return 0;
     }
@@ -18,14 +18,14 @@ public:
 
 int main()
 {
-    ThreadPool *pool = ThreadPool::getInstance(5, 20);
+    ThreadPool::ptr pool = std::make_shared<ThreadPool>("WebSever");
     MyTask taskObj[20];
-    for(int i = 0; i < 20; i++)
+    for (int i = 0; i < 20; i++)
     {
         pool->AddTask(std::bind(&MyTask::run, &taskObj[i], i, "helloworld"));
     }
 
-    while(1)
+    while (1)
     {
         printf("there are still %d tasks need to process\n", pool->getSize());
         if (pool->getSize() == 0)

@@ -20,7 +20,7 @@ void fn2()
     }
 }
 
-int main(int, char**)
+int main(int, char **)
 {
     xb::Scheduler sc(4, true);
     sc.start();
@@ -28,9 +28,8 @@ int main(int, char**)
     int i = 0;
     for (i = 0; i < 3; i++)
     {
-        sc.addTask([i]() {
-            std::cout << ">>>>>> " << i << std::endl;
-        });
+        sc.addTask([i]()
+                   { std::cout << ">>>>>> " << i << std::endl; });
         // sc.addTask(fn);
     }
     sc.stop();

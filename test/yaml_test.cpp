@@ -9,23 +9,23 @@ using namespace std;
 
 void print_yaml(YAML::Node config, int level)
 {
-    if(config.IsSequence())
+    if (config.IsSequence())
     {
-        for(size_t i = 0; i < config.size(); i++)
+        for (size_t i = 0; i < config.size(); i++)
         {
             cout << config[i] << endl;
             print_yaml(config[i], level++);
         }
     }
-    else if(config.IsMap())
+    else if (config.IsMap())
     {
-        for(auto it : config)
+        for (auto it : config)
         {
             cout << it.first << ":";
             print_yaml(it.second, level + 1);
         }
     }
-    else if(config.IsScalar())
+    else if (config.IsScalar())
     {
         cout << config.Scalar() << endl;
     }
