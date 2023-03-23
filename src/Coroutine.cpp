@@ -24,12 +24,13 @@ namespace xb
         }
     };
 
-    Coroutine::Coroutine() : stack_(nullptr),
-                             state_(EXEC),
-                             func_(),
-                             stack_size_(0),
-                             context_(),
-                             coroutineId_(0)
+    Coroutine::Coroutine()
+        : stack_(nullptr),
+          state_(EXEC),
+          func_(),
+          stack_size_(0),
+          context_(),
+          coroutineId_(0)
     {
         //    std::cout << "主协程构造函数" << std::endl;
         setThis(this);
@@ -42,11 +43,12 @@ namespace xb
         // LOG_FMT_DEBUG(stdout_logger, "创建主协程 id=%d, total=%d", static_cast<int>(coroutineId_), static_cast<int>(CoroutineNum_));
     }
 
-    Coroutine::Coroutine(CoroutineFunc func, bool use_caller, uint64_t stack_size) : func_(std::move(func)),
-                                                                                     stack_size_(100 * 1024),
-                                                                                     state_(INIT),
-                                                                                     stack_(nullptr),
-                                                                                     context_()
+    Coroutine::Coroutine(CoroutineFunc func, bool use_caller, uint64_t stack_size)
+        : func_(std::move(func)),
+          stack_size_(100 * 1024),
+          state_(INIT),
+          stack_(nullptr),
+          context_()
     {
         //    std::cout << "子协程构造函数" << std::endl;
         setThis(this);
@@ -134,7 +136,7 @@ namespace xb
         assert(state_ != EXEC);
         setThis(this);
         state_ = EXEC;
-        LOG_FMT_DEBUG(stdout_logger, "call pre_coroutine_ptr: [%d]  %d->%d", GetThreadId(), Coroutine::pre_coroutine_ptr->coroutineId_, coroutineId_);
+        // LOG_FMT_DEBUG(stdout_logger, "call pre_coroutine_ptr: [%d]  %d->%d", GetThreadId(), Coroutine::pre_coroutine_ptr->coroutineId_, coroutineId_);
         // 当前线程的主协程切换到子协程，保存当前上下文到主协程
         if (swapcontext(&Coroutine::pre_coroutine_ptr->context_, &context_))
         {
@@ -147,7 +149,7 @@ namespace xb
         // 子协程切换到主协程
         assert(stack_);
         setThis(Coroutine::pre_coroutine_ptr.get());
-        LOG_FMT_DEBUG(stdout_logger, "back pre_coroutine_ptr: [%d]  %d->%d", GetThreadId(), coroutineId_, Coroutine::pre_coroutine_ptr->coroutineId_);
+        // LOG_FMT_DEBUG(stdout_logger, "back pre_coroutine_ptr: [%d]  %d->%d", GetThreadId(), coroutineId_, Coroutine::pre_coroutine_ptr->coroutineId_);
         // 当前线程的子协程切换到主协程，保存当前上下文到子协程;
         if (swapcontext(&context_, &Coroutine::pre_coroutine_ptr->context_))
         {
@@ -161,7 +163,7 @@ namespace xb
         assert(state_ != EXEC);
         setThis(this);
         state_ = EXEC;
-        LOG_FMT_DEBUG(stdout_logger, "swapIn RootRoutineID: [%d]  %d->%d", GetThreadId(), Scheduler::GetRootRoutine()->coroutineId_, coroutineId_);
+        // LOG_FMT_DEBUG(stdout_logger, "swapIn RootRoutineID: [%d]  %d->%d", GetThreadId(), Scheduler::GetRootRoutine()->coroutineId_, coroutineId_);
         // 主线程的主协程切换到当前协程，保存当前上下文到主协程
         if (swapcontext(&(Scheduler::GetRootRoutine()->context_), &context_))
         {
@@ -174,7 +176,7 @@ namespace xb
         // 子协程切换到主协程
         assert(stack_);
         setThis(Scheduler::GetRootRoutine());
-        LOG_FMT_DEBUG(stdout_logger, "swapOut RootRoutineID: [%d]  %d->%d", GetThreadId(), coroutineId_, Scheduler::GetRootRoutine()->coroutineId_);
+        // LOG_FMT_DEBUG(stdout_logger, "swapOut RootRoutineID: [%d]  %d->%d", GetThreadId(), coroutineId_, Scheduler::GetRootRoutine()->coroutineId_);
         // 当前协程切换到主线程主协程，保存当前上下文到子协程;
         if (swapcontext(&context_, &(Scheduler::GetRootRoutine()->context_)))
         {
@@ -198,7 +200,6 @@ namespace xb
 
     void Coroutine::MainFunc()
     {
-        // std::cout << "routine start" << std::endl;
         Coroutine::ptr cur = GetThis();
         try
         {
@@ -210,7 +211,7 @@ namespace xb
         catch (const std::exception &e)
         {
             cur->state_ = EXCEPTION;
-            LOG_ERROR(stdout_logger, "exec function failure!");
+            LOG_ERROR(stdout_logger, "exec function failure");
         }
         // 释放share_ptr引用计数，否则cur永远无法释放。
         Coroutine *ptr = cur.get();

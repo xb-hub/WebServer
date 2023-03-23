@@ -170,7 +170,7 @@ namespace xb
 
             Timer::ptr now_timer(new Timer(now_ms));
             auto it = rollover ? timer_list_.end() : timer_list_.lower_bound(now_timer);
-            while (it != timer_list_.end() && (*it)->next_ == now_ms)
+            while (it != timer_list_.end() && (*it)->next_ >= now_ms)
             {
                 ++it;
             }
@@ -210,6 +210,11 @@ namespace xb
     {
         MutexLockGuard lock(mutex_);
         return !timer_list_.empty();
+    }
+
+    void TimerManager::onTimerInsertedAtFront()
+    {
+
     }
 
 } // namespace xb

@@ -12,19 +12,19 @@ namespace xb
         std::string result;
         switch (level)
         {
-        case DEBUG:
+        case Level::DEBUG:
             result = "DEBUG";
             break;
-        case INFO:
+        case Level::INFO:
             result = "INFO";
             break;
-        case WARN:
+        case Level::WARN:
             result = "WARN";
             break;
-        case ERROR:
+        case Level::ERROR:
             result = "ERROR";
             break;
-        case FATAL:
+        case Level::FATAL:
             result = "FATAL";
         }
         return result;
@@ -45,7 +45,7 @@ namespace xb
 
     /*********************** Logger ***********************/
     Logger::Logger() : m_name("default"),
-                       m_level(LogLevel::DEBUG),
+                       m_level(LogLevel::Level::DEBUG),
                        m_formatter_pattern("[%d] [%p] [%f:%l]%T [%t] %m%n")
     {
         m_formatter.reset(new LogFormatter(m_formatter_pattern));
@@ -328,14 +328,14 @@ namespace xb
                 LogAppender::ptr appender;
                 switch (appender_config.type)
                 {
-                case LogAppenderConfig::Stdout:
+                case LogAppenderConfig::Type::Stdout:
                     appender = std::make_shared<StdoutLogAppender>();
                     break;
-                case LogAppenderConfig::File:
+                case LogAppenderConfig::Type::File:
                     appender = std::make_shared<FileLogAppender>(appender_config.file);
                     break;
                 default:
-                    std::cerr << "LoggerManager::init exception 无效的 appender 配置值，appender.type=" << appender_config.type << std::endl;
+                    std::cerr << "LoggerManager::init exception 无效的 appender" << std::endl;
                     break;
                 }
                 appender->setFormatter(std::make_shared<LogFormatter>(appender_config.formatter));

@@ -12,7 +12,7 @@ namespace xb
 
     // 构造函数初始化
     ThreadPool::ThreadPool(const std::string &name)
-        : TASK_NUM(20),
+        : TASK_NUM(100),
           is_running(false),
           mutex_(),
           take_cond_(mutex_),
@@ -54,9 +54,6 @@ namespace xb
     // 添加任务到任务队列
     void ThreadPool::AddTask(const Task &task)
     {
-        // #ifdef _DEBUG_
-        //     std::cout << "add task!" << std::endl;
-        // #endif
         MutexLockGuard lock(mutex_);
         while (task_queue.size() >= TASK_NUM && is_running)
             add_cond_.wait();

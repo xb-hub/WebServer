@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sys/time.h>
 #include "util.h"
+#include <string.h>
 
 namespace xb
 {

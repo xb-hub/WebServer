@@ -21,7 +21,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class SingletonPtr final
     {
     private:

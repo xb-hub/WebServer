@@ -28,7 +28,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::string, std::vector<T>>
     {
     public:
@@ -54,7 +54,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::vector<T>, std::string>
     {
     public:
@@ -71,7 +71,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::string, std::list<T>>
     {
     public:
@@ -96,7 +96,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::list<T>, std::string>
     {
     public:
@@ -113,7 +113,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::string, std::set<T>>
     {
     public:
@@ -138,7 +138,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::set<T>, std::string>
     {
     public:
@@ -155,7 +155,7 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::string, std::map<std::string, T>>
     {
     public:
@@ -181,16 +181,16 @@ namespace xb
         }
     };
 
-    template <typename T>
+    template <class T>
     class LexicalCast<std::map<std::string, T>, std::string>
     {
     public:
-        std::string operator()(std::map<std::string, T> &source)
+        std::string operator()(const std::map<std::string, T> &source)
         {
-            YAML::Node node;
-            for (const auto &item : source)
+            YAML::Node node(YAML::NodeType::Map);
+            for (auto &item : source)
             {
-                node[item.first] = YAML::Load(LexicalCast<T, std::string>(item.second));
+                node[item.first] = YAML::Load(LexicalCast<T, std::string>()(item.second));
             }
             std::stringstream ss;
             ss << node;
@@ -219,7 +219,7 @@ namespace xb
         std::string description_;
     };
 
-    template <typename T>
+    template <class T>
     class ConfigVar : public ConfigVarBase
     {
     public:
@@ -333,7 +333,7 @@ namespace xb
             return iter->second;
         }
 
-        template <typename T>
+        template <class T>
         static typename ConfigVar<T>::ptr LookUp(const std::string &name)
         {
             auto iter = LookUp(name);
@@ -343,7 +343,7 @@ namespace xb
             return ptr;
         }
 
-        template <typename T>
+        template <class T>
         static typename ConfigVar<T>::ptr LookUp(const std::string &name, const T &value, const std::string &description = "")
         {
             ConfigVarMap &data = getData();
@@ -380,6 +380,17 @@ namespace xb
                     ss << node.second;
                     var->fromString(ss.str());
                 }
+            }
+        }
+
+        static void Visit(std::function<void(ConfigVarBase::ptr)> cb)
+        {
+            ReadLockGraud lock(getRWLock());
+            ConfigVarMap &m = getData();
+            for (auto it = m.begin();
+                 it != m.end(); ++it)
+            {
+                cb(it->second);
             }
         }
 

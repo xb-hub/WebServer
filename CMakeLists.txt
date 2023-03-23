@@ -12,18 +12,24 @@ include_directories(
         ${YAML_CPP_INCLUDE_DIRS}
 )
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
-set(SOURCE_LIST server.cpp src/MyHttp.cpp src/ThreadPool.cpp src/Timer.cpp src/IOManager.cpp src/Thread.cpp src/Hook.cpp src/FdManager.cpp src/Scheduler.cpp src/Coroutine.cpp src/Log.cpp src/util.cpp)
-set(TEST_LIST src/Thread.cpp src/Timer.cpp src/IOManager.cpp src/Hook.cpp src/FdManager.cpp src/Scheduler.cpp src/Coroutine.cpp src/Log.cpp src/util.cpp src/Address.cpp src/Socket.cpp)
+set(TEST_LIST src/Coroutine.cpp src/Log.cpp
+src/Scheduler.cpp src/Thread.cpp src/Timer.cpp src/util.cpp 
+src/ThreadPool.cpp)
+
+set(SOURCE_LIST src/Server.cpp src/ThreadPool.cpp 
+src/Timer.cpp src/Thread.cpp src/HttpConn.cpp
+src/Scheduler.cpp src/Coroutine.cpp src/Buffer.cpp src/epoller.cpp 
+src/Log.cpp src/util.cpp src/HttpResponse.cpp src/HttpRequest.cpp)
 #add_executable(threadpool_test threadpool_test.cpp src/ThreadPool.cpp)
 #target_link_libraries(threadpool_test Threads::Threads)
 #add_executable(client_test client_test.cpp)
-add_executable(server ${SOURCE_LIST})
+add_executable(server main.cpp ${SOURCE_LIST})
 target_link_libraries(server Threads::Threads ${Boost_LIBRARIES} yaml-cpp dl)
 
-add_executable(test test/test.cpp)
-target_link_libraries(test Threads::Threads ${Boost_LIBRARIES})
+# add_executable(test test/test.cpp)
+# target_link_libraries(test Threads::Threads ${Boost_LIBRARIES})
 
 add_executable(log_test test/log_test.cpp src/Log.cpp src/util.cpp)
 target_link_libraries(log_test Threads::Threads yaml-cpp)
@@ -37,14 +43,5 @@ target_link_libraries(coroutine_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBR
 add_executable(schedule_test test/schedule_test.cpp ${TEST_LIST})
 target_link_libraries(schedule_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBRARIES})
 
-add_executable(io_test test/iomanager_test.cpp ${TEST_LIST})
-target_link_libraries(io_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBRARIES})
-
-add_executable(hook_test test/hook_test.cpp ${TEST_LIST})
-target_link_libraries(hook_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBRARIES})
-
-add_executable(address_test test/address_test.cpp ${TEST_LIST})
-target_link_libraries(address_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBRARIES})
-
-add_executable(socket_test test/socket_test.cpp ${TEST_LIST})
-target_link_libraries(socket_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBRARIES})
+# add_executable(io_test test/iomanager_test.cpp ${TEST_LIST})
+# target_link_libraries(io_test Threads::Threads yaml-cpp dl ${OPENSSL_LIBRARIES})

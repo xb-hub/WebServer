@@ -24,7 +24,7 @@ namespace xb
         using ptr = std::shared_ptr<ThreadPool>;
 
     public:
-        ThreadPool(const std::string &name);
+        ThreadPool(const std::string &name = "");
 
     protected:
         const int TASK_NUM; // 任务队列任务数
@@ -36,7 +36,7 @@ namespace xb
         void AddTask(const Task &task);
         Task TakeTask();
         size_t getSize();
-        void start(int thread_num);
+        void start(int thread_num = 8);
         void stop();
 
     private:

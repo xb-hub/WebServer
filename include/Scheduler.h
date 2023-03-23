@@ -16,6 +16,7 @@ namespace xb
     {
     public:
         using ptr = std::shared_ptr<Scheduler>;
+        using unptr = std::unique_ptr<Scheduler>;
         using TaskFunc = std::function<void()>;
 
         // 线程执行协程
@@ -25,24 +26,23 @@ namespace xb
 
             Coroutine::ptr routine_;
             TaskFunc func_;
-            u_int64_t threadID_;
 
-            Task() : threadID_(-1)
+            Task()
             {
             }
 
-            Task(Coroutine::ptr routine, long tid) : routine_(std::move(routine)),
-                                                     threadID_(tid)
+            Task(Coroutine::ptr routine)
+                : routine_(std::move(routine))
             {
             }
 
-            Task(const TaskFunc &func, long tid) : func_(func),
-                                                   threadID_(tid)
+            Task(const TaskFunc &func)
+                : func_(func)
             {
             }
 
-            Task(TaskFunc &&func, long tid) : func_(std::move(func)),
-                                              threadID_(tid)
+            Task(TaskFunc &&func)
+                : func_(std::move(func))
             {
             }
 
@@ -53,14 +53,13 @@ namespace xb
             {
                 routine_ = nullptr;
                 func_ = nullptr;
-                threadID_ = -1;
             }
         };
 
     public:
         friend class Coroutine;
 
-        Scheduler(size_t thread_num, bool usecall = true, const std::string name = "");
+        Scheduler(size_t thread_num = 16, bool usecall = true, const std::string name = "");
         virtual ~Scheduler();
 
         void start();
@@ -75,7 +74,7 @@ namespace xb
         void setThis();
 
         template <typename Executable>
-        void addTask(Executable callback, int threadID = -1)
+        void addTask(Executable&& callback)
         {
 #ifdef LOG
             LOG_INFO(stdout_logger, "调用 Scheduler::AddTask()");
@@ -83,7 +82,7 @@ namespace xb
             bool is_tickle = false;
             {
                 MutexLockGuard lock(mutex_);
-                Task::ptr task = std::make_shared<Task>(callback, threadID);
+                Task::ptr task = std::make_shared<Task>(std::forward<Executable>(callback));
                 is_tickle = task_list_.empty();
                 if (task->routine_ || task->func_)
                 {
@@ -105,7 +104,7 @@ namespace xb
                 MutexLockGuard lock(mutex_);
                 while (begin != end)
                 {
-                    Task::ptr task = std::make_shared<Task>(*begin, -1);
+                    Task::ptr task = std::make_shared<Task>(*begin);
                     is_tickle = task_list_.empty() || is_tickle;
                     if (task->routine_ || task->func_)
                     {

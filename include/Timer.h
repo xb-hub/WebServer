@@ -45,12 +45,14 @@ namespace xb
         friend class Timer;
 
     public:
+        using ptr = std::shared_ptr<TimerManager>;
+        using unptr = std::unique_ptr<TimerManager>;
         TimerManager(/* args */);
         virtual ~TimerManager();
 
         void addTimer(Timer::ptr time);
 
-        virtual void onTimerInsertedAtFront() = 0;
+        virtual void onTimerInsertedAtFront();
 
         uint64_t getNextTimer();
         void listExpiredCb(std::vector<std::function<void()>> &func);

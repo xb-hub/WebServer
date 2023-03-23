@@ -1,8 +1,7 @@
-#define LOG
+// #define LOG
 #include <assert.h>
 #include "Scheduler.h"
 #include "util.h"
-#include "Hook.h"
 
 namespace xb
 {
@@ -30,16 +29,17 @@ namespace xb
         return root_threadID_;
     }
 
-    Scheduler::Scheduler(size_t thread_num, bool usecall, const std::string name) : name_(std::move(name)),
-                                                                                    running_(false),
-                                                                                    mutex_(),
-                                                                                    exec_thread_num_(0)
+    Scheduler::Scheduler(size_t thread_num, bool usecall, const std::string name)
+        : name_(std::move(name)),
+          running_(false),
+          mutex_(),
+          exec_thread_num_(0),
+          thread_num_(thread_num)
     {
         if (usecall)
         {
             // 创建主协程
             Coroutine::GetThis();
-            --thread_num;
             assert(GetThis() == nullptr);
             current_schedule_ = this;
             root_routine_ = std::make_shared<Coroutine>(std::bind(&Scheduler::run, this), true, 0);
@@ -50,7 +50,6 @@ namespace xb
         {
             root_threadID_ = -1;
         }
-        thread_num_ = thread_num;
     }
 
     Scheduler::~Scheduler()
@@ -106,11 +105,6 @@ namespace xb
 
         if (root_routine_)
         {
-            tickle();
-        }
-
-        if (root_routine_)
-        {
             if (!CanStop())
             {
                 root_routine_->call();
@@ -158,8 +152,8 @@ namespace xb
 #ifdef LOG
         LOG_DEBUG(stdout_logger, "调用 Scheduler::run()");
 #endif
+        LOG_FMT_DEBUG(stdout_logger, "Thread : [%d]", GetThreadId());
         setThis();
-        set_hook_enable(true);
         if (GetThreadId() != root_threadID_)
         {
             // 给每个线程创建主协程
@@ -178,13 +172,6 @@ namespace xb
                 auto it = task_list_.begin();
                 while (it != task_list_.end())
                 {
-                    // 任务指定特定线程执行，但不是当前线程
-                    if ((*it)->threadID_ != -1 && (*it)->threadID_ != GetThreadId())
-                    {
-                        ++it;
-                        is_tickle = true;
-                        continue;
-                    }
                     assert((*it)->func_ || (*it)->routine_);
                     // 协程正在执行
                     if ((*it)->routine_ && (*it)->routine_->state_ == Coroutine::EXEC)
@@ -213,25 +200,13 @@ namespace xb
             }
             if (task.routine_ && !task.routine_->finish())
             {
-                // LOG_INFO(stdout_logger, "执行协程");
-                // std::cout <<  << std::endl;
-                // if(GetThreadId() == main_threadID_)
-                // {
-                //     std::cout << "size: " << task_list_.size() << std::endl;
-                //     task.routine_->swapIn();
-                //     --exec_thread_num_;
-                // }
                 task.routine_->swapIn();
                 --exec_thread_num_;
 
                 Coroutine::CoroutineState state = task.routine_->state_;
                 if (state == Coroutine::READY)
                 {
-                    addTask(std::move(task.routine_), task.threadID_);
-                }
-                else if (!task.routine_->finish())
-                {
-                    task.routine_->state_ = Coroutine::HOLD;
+                    addTask(std::move(task.routine_));
                 }
                 task.reset();
             }

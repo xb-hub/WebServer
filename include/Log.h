@@ -18,11 +18,11 @@
 
 #define LOG_LEVEL(logger, level, content) logger->log(level, MAKE_EVENT(level, content))
 
-#define LOG_DEBUG(logger, content) LOG_LEVEL(logger, xb::LogLevel::DEBUG, content)
-#define LOG_INFO(logger, content) LOG_LEVEL(logger, xb::LogLevel::INFO, content)
-#define LOG_WARN(logger, content) LOG_LEVEL(logger, xb::LogLevel::WARN, content)
-#define LOG_ERROR(logger, content) LOG_LEVEL(logger, xb::LogLevel::ERROR, content)
-#define LOG_FATAL(logger, content) LOG_LEVEL(logger, xb::LogLevel::FATAL, content)
+#define LOG_DEBUG(logger, content) LOG_LEVEL(logger, xb::LogLevel::Level::DEBUG, content)
+#define LOG_INFO(logger, content) LOG_LEVEL(logger, xb::LogLevel::Level::INFO, content)
+#define LOG_WARN(logger, content) LOG_LEVEL(logger, xb::LogLevel::Level::WARN, content)
+#define LOG_ERROR(logger, content) LOG_LEVEL(logger, xb::LogLevel::Level::ERROR, content)
+#define LOG_FATAL(logger, content) LOG_LEVEL(logger, xb::LogLevel::Level::FATAL, content)
 
 #define LOG_FMT_LEVEL(logger, level, fmt, argv...)      \
     {                                                   \
@@ -34,11 +34,11 @@
             free(buf);                                  \
         }                                               \
     }
-#define LOG_FMT_DEBUG(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::DEBUG, fmt, argv)
-#define LOG_FMT_INFO(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::INFO, fmt, argv)
-#define LOG_FMT_WARN(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::WARN, fmt, argv)
-#define LOG_FMT_ERROR(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::ERROR, fmt, argv)
-#define LOG_FMT_FATAL(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::FATAL, fmt, argv)
+#define LOG_FMT_DEBUG(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::Level::DEBUG, fmt, argv)
+#define LOG_FMT_INFO(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::Level::INFO, fmt, argv)
+#define LOG_FMT_WARN(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::Level::WARN, fmt, argv)
+#define LOG_FMT_ERROR(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::Level::ERROR, fmt, argv)
+#define LOG_FMT_FATAL(logger, fmt, argv...) LOG_FMT_LEVEL(logger, xb::LogLevel::Level::FATAL, fmt, argv)
 
 namespace xb
 {
@@ -47,7 +47,7 @@ namespace xb
     class LogLevel
     {
     public:
-        enum Level
+        enum class Level : unsigned int
         {
             DEBUG = 0,
             INFO = 1,
@@ -173,7 +173,7 @@ namespace xb
     {
     public:
         using ptr = std::shared_ptr<FileLogAppender>;
-        explicit FileLogAppender(const std::string &filename, LogLevel::Level level = LogLevel::DEBUG);
+        explicit FileLogAppender(const std::string &filename, LogLevel::Level level = LogLevel::Level::DEBUG);
         void log(LogLevel::Level level, LogEvent::ptr event) override;
         bool reopen();
 
@@ -184,7 +184,7 @@ namespace xb
 
     struct LogAppenderConfig
     {
-        enum Type
+        enum class Type : unsigned int
         {
             Stdout = 0,
             File = 1
