@@ -12,7 +12,7 @@ namespace xb
         GetCurrentProcesser() = this;
         while(!scheduler_->CanStop())
         {
-
+            
         }
     }
 
