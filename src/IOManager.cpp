@@ -8,7 +8,8 @@
 namespace xb
 {
 
-    FdContext::FdContext(int fd) : fd_(fd)
+    FdContext::FdContext(int fd)
+        : fd_(fd)
     {
     }
 
@@ -51,9 +52,10 @@ namespace xb
         return;
     }
 
-    IOManager::IOManager(size_t thread_num, bool use_call, const std::string &name) : evnet_num_(0),
-                                                                                      MAX_EVENTS_NUM_(256),
-                                                                                      Scheduler(thread_num, use_call, name)
+    IOManager::IOManager(size_t thread_num, bool use_call, const std::string &name)
+        : evnet_num_(0),
+          MAX_EVENTS_NUM_(256),
+          Scheduler(thread_num, use_call, name)
     {
         epollfd_ = epoll_create(5000);
         int rt = pipe(pipefd_);
@@ -333,8 +335,7 @@ namespace xb
                 if (events[i].data.fd == pipefd_[0])
                 {
                     uint8_t dummy[256];
-                    while (read(pipefd_[0], dummy, sizeof(dummy)) > 0)
-                        ;
+                    while (read(pipefd_[0], dummy, sizeof(dummy)) > 0) {}
                     continue;
                 }
                 FdContext *fd_ctx = static_cast<FdContext *>(events[i].data.ptr);
