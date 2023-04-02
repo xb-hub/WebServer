@@ -1,22 +1,22 @@
-#include "HttpConn.h"
+#include "HttpConnection.h"
 
 namespace xb
 {
-const char* HttpConn::srcDir;
-std::atomic<int> HttpConn::userCount;
-bool HttpConn::isET;
+const char* HttpConnection::srcDir;
+std::atomic<int> HttpConnection::userCount;
+bool HttpConnection::isET;
 
-HttpConn::HttpConn() { 
+HttpConnection::HttpConnection() { 
     fd_ = -1;
     addr_ = { 0 };
     isClose_ = true;
 };
 
-HttpConn::~HttpConn() { 
+HttpConnection::~HttpConnection() { 
     Close(); 
 };
 
-void HttpConn::init(int fd, const sockaddr_in& addr) {
+void HttpConnection::init(int fd, const sockaddr_in& addr) {
     assert(fd > 0);
     userCount++;
     addr_ = addr;
@@ -27,7 +27,7 @@ void HttpConn::init(int fd, const sockaddr_in& addr) {
 //    LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d](%s:%d) in, userCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
 }
 
-void HttpConn::Close() {
+void HttpConnection::Close() {
     response_.UnmapFile();
     if(isClose_ == false){
         isClose_ = true; 
@@ -37,23 +37,23 @@ void HttpConn::Close() {
     }
 }
 
-int HttpConn::GetFd() const {
+int HttpConnection::GetFd() const {
     return fd_;
 };
 
-struct sockaddr_in HttpConn::GetAddr() const {
+struct sockaddr_in HttpConnection::GetAddr() const {
     return addr_;
 }
 
-const char* HttpConn::GetIP() const {
+const char* HttpConnection::GetIP() const {
     return inet_ntoa(addr_.sin_addr);
 }
 
-int HttpConn::GetPort() const {
+int HttpConnection::GetPort() const {
     return addr_.sin_port;
 }
 
-ssize_t HttpConn::read(int* saveErrno) {
+ssize_t HttpConnection::read(int* saveErrno) {
     ssize_t len = -1;
     do {
         len = readBuff_.ReadFd(fd_, saveErrno);
@@ -64,7 +64,7 @@ ssize_t HttpConn::read(int* saveErrno) {
     return len;
 }
 
-ssize_t HttpConn::write(int* saveErrno) {
+ssize_t HttpConnection::write(int* saveErrno) {
     ssize_t len = -1;
     do {
         len = writev(fd_, iov_, iovCnt_);
@@ -91,7 +91,7 @@ ssize_t HttpConn::write(int* saveErrno) {
     return len;
 }
 
-bool HttpConn::process() {
+bool HttpConnection::process() {
     request_.Init();
     if(readBuff_.ReadableBytes() <= 0) {
         return false;

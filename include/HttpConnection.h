@@ -1,5 +1,5 @@
-#ifndef _HTTPCONN_H_
-#define _HTTPCONN_H_
+#ifndef _HTTPCONNECTION_H_
+#define _HTTPCONNECTION_H_
 
 #include <sys/types.h>
 #include <sys/uio.h>     // readv/writev
@@ -13,11 +13,11 @@
 
 namespace xb
 {
-class HttpConn {
+class HttpConnection {
 public:
-    HttpConn();
+    HttpConnection();
 
-    ~HttpConn();
+    ~HttpConnection();
 
     void init(int sockFd, const sockaddr_in& addr);
 

@@ -19,7 +19,7 @@ src/Scheduler.cpp src/Thread.cpp src/Timer.cpp src/util.cpp
 src/ThreadPool.cpp)
 
 set(SOURCE_LIST src/Server.cpp src/ThreadPool.cpp src/sqlconnpool.cpp 
-src/Timer.cpp src/Thread.cpp src/HttpConn.cpp
+src/Timer.cpp src/Thread.cpp src/HttpConnection.cpp
 src/Scheduler.cpp src/Coroutine.cpp src/Buffer.cpp src/epoller.cpp 
 src/Log.cpp src/util.cpp src/HttpResponse.cpp src/HttpRequest.cpp)
 #add_executable(threadpool_test threadpool_test.cpp src/ThreadPool.cpp)

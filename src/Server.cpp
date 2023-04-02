@@ -28,8 +28,8 @@ namespace xb
           openLinger_(false),
           epoller_(new Epoller())
     {
-        HttpConn::userCount = 0;
-        HttpConn::srcDir = root_.c_str();
+        HttpConnection::userCount = 0;
+        HttpConnection::srcDir = root_.c_str();
         InitEventMode(3);
         InitSocket();
         SqlConnPool::Instance()->Init("localhost", 3306, "root", "123456", "webserver", 12);
@@ -70,7 +70,7 @@ namespace xb
             listenEvent_ |= EPOLLET;
             break;
         }
-        HttpConn::isET = (connEvent_ & EPOLLET);
+        HttpConnection::isET = (connEvent_ & EPOLLET);
     }
 
     void Server::AddClient(int fd)
@@ -84,7 +84,7 @@ namespace xb
             {
                 return;
             }
-            else if (HttpConn::userCount >= MAX_FD)
+            else if (HttpConnection::userCount >= MAX_FD)
             {
                 SendError(fd, "Server busy!");
                 LOG_WARN(GET_ROOT_LOGGER(), "Clients is full!");
@@ -99,7 +99,7 @@ namespace xb
         } while (listenEvent_ & EPOLLET);
     }
 
-    void Server::ReadRequest(HttpConn *client)
+    void Server::ReadRequest(HttpConnection *client)
     {
         timer_list_[client->GetFd()]->reset(timeoutMs, false);
         assert(client);
@@ -116,7 +116,7 @@ namespace xb
         OnProcess(client);
     }
 
-    void Server::SendReponse(HttpConn *client)
+    void Server::SendReponse(HttpConnection *client)
     {
         timer_list_[client->GetFd()]->reset(timeoutMs, false);
         // LOG_DEBUG(GET_ROOT_LOGGER(), "Send Reponse!");
@@ -150,21 +150,21 @@ namespace xb
         CloseConn(client);
     }
 
-    void Server::DealRead(HttpConn* client)
+    void Server::DealRead(HttpConnection* client)
     {
         timer_list_[client->GetFd()]->reset(timeoutMs, true);
         // pool->AddTask(std::bind(&Server::ReadRequest, this, client));
         schedule->addTask(std::bind(&Server::ReadRequest, this, client));
     }
 
-    void Server::DealWrite(HttpConn* client)
+    void Server::DealWrite(HttpConnection* client)
     {
         timer_list_[client->GetFd()]->reset(timeoutMs, true);
         // pool->AddTask(std::bind(&Server::SendReponse, this, client));
         schedule->addTask(std::bind(&Server::SendReponse, this, client));
     }
 
-    void Server::OnProcess(HttpConn *client)
+    void Server::OnProcess(HttpConnection *client)
     {
         if (client->process())
         {
@@ -190,7 +190,7 @@ namespace xb
     }
 
 
-    void Server::CloseConn(HttpConn *client)
+    void Server::CloseConn(HttpConnection *client)
     {
         assert(client->GetFd());
         // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());

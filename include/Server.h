@@ -20,7 +20,7 @@
 #include "Timer.h"
 #include "ThreadPool.h"
 #include "Scheduler.h"
-#include "HttpConn.h"
+#include "HttpConnection.h"
 #include "Log.h"
 #include "epoller.h"
 #include "util.h"
@@ -61,23 +61,23 @@ namespace xb
         void InitSocket();
         void InitEventMode(int trigMode);
 
-        void ReadRequest(HttpConn* client);
-        void SendReponse(HttpConn* client);
+        void ReadRequest(HttpConnection* client);
+        void SendReponse(HttpConnection* client);
         void AddClient(int fd);
 
-        void DealRead(HttpConn* client);
-        void DealWrite(HttpConn* client);
+        void DealRead(HttpConnection* client);
+        void DealWrite(HttpConnection* client);
 
         void SendError(int fd, const char*info);
-        void CloseConn(HttpConn *client);
+        void CloseConn(HttpConnection *client);
 
-        void OnProcess(HttpConn* client);
+        void OnProcess(HttpConnection* client);
 
         static const int MAX_FD = 65536;
 
         std::unique_ptr<Epoller> epoller_;
 
-        std::unordered_map<int, HttpConn> users_;
+        std::unordered_map<int, HttpConnection> users_;
         std::unordered_map<int, Timer::ptr> timer_list_;
     };
 
