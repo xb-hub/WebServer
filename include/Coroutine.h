@@ -33,7 +33,7 @@ namespace xb
         void setThis(Coroutine *coroutine);
 
     public:
-        explicit Coroutine(CoroutineFunc func, bool use_caller = false, uint64_t stack_size = 0);
+        explicit Coroutine(CoroutineFunc func, bool use_caller = false, uint64_t stack_size = 100 * 1024);
         ~Coroutine();
 
         // CoroutineState getState() { return state_; }
@@ -53,6 +53,12 @@ namespace xb
 
         static void MainFunc();
         static void CallMainFunc();
+
+        static ucontext_t& GetTlsContext()
+        {
+            static thread_local ucontext_t tls_contest;
+            return tls_contest;
+        }
 
         bool finish();
 

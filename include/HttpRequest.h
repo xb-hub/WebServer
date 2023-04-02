@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include "Buffer.h"
 #include "Log.h"
-// #include "sqlconnpool.h"
-// #include "sqlconnRAII.h"
+#include "sqlconnpool.h"
+#include "sqlconnRAII.h"
 
 namespace xb
 {

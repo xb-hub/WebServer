@@ -165,7 +165,8 @@ namespace xb
         state_ = EXEC;
         // LOG_FMT_DEBUG(stdout_logger, "swapIn RootRoutineID: [%d]  %d->%d", GetThreadId(), Scheduler::GetRootRoutine()->coroutineId_, coroutineId_);
         // 主线程的主协程切换到当前协程，保存当前上下文到主协程
-        if (swapcontext(&(Scheduler::GetRootRoutine()->context_), &context_))
+        // if (swapcontext(&(Scheduler::GetRootRoutine()->context_), &context_))
+        if (swapcontext(&(GetTlsContext()), &context_))
         {
             LOG_ERROR(GET_ROOT_LOGGER(), "swapIn failure!");
         }
@@ -178,7 +179,8 @@ namespace xb
         setThis(Scheduler::GetRootRoutine());
         // LOG_FMT_DEBUG(stdout_logger, "swapOut RootRoutineID: [%d]  %d->%d", GetThreadId(), coroutineId_, Scheduler::GetRootRoutine()->coroutineId_);
         // 当前协程切换到主线程主协程，保存当前上下文到子协程;
-        if (swapcontext(&context_, &(Scheduler::GetRootRoutine()->context_)))
+        // if (swapcontext(&context_, &(Scheduler::GetRootRoutine()->context_)))
+        if (swapcontext(&context_, &(GetTlsContext())))
         {
             LOG_ERROR(GET_ROOT_LOGGER(), "swapOut failure!");
         }

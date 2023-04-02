@@ -32,6 +32,7 @@ namespace xb
         HttpConn::srcDir = root_.c_str();
         InitEventMode(3);
         InitSocket();
+        SqlConnPool::Instance()->Init("localhost", 3306, "root", "123456", "webserver", 12);
         // pool = std::make_shared<ThreadPool>();
         // pool->start();
         schedule = std::make_unique<Scheduler>();
