@@ -19,32 +19,32 @@ namespace xb
     }
 
     // 构造函数初始化
-    Server::Server(const int port, const std::string &resources)
-        : listenfd_(-1),
+    Server::Server(int port, const std::string &resources)
+        : address_(port),
           root_(resources), // "/Users/xubin/Desktop/MyHttp/htdocs"
-          port_(port),
           timeoutMs(60000),
           isClose_(false),
           openLinger_(false),
-          epoller_(new Epoller())
+          pool_(std::make_shared<ThreadPool>()),
+          loop_(std::make_shared<IOEventLoop>())
     {
         HttpConnection::userCount = 0;
         HttpConnection::srcDir = root_.c_str();
         InitEventMode(3);
-        InitSocket();
+        socket_ = Socket::createTcpSocket();
         SqlConnPool::Instance()->Init("localhost", 3306, "root", "123456", "webserver", 12);
-        // pool = std::make_shared<ThreadPool>();
-        // pool->start();
-        schedule = std::make_unique<Scheduler>();
-        schedule->start();
-        timer = std::make_shared<TimerManager>();
+        LOG_DEBUG(GET_ROOT_LOGGER(), "创建数据库");
+        pool_->start();
+        LOG_DEBUG(GET_ROOT_LOGGER(), "创建线程池");
+        // schedule_ = std::make_unique<Scheduler>();
+        // schedule_->start();
+        timer_ = std::make_shared<TimerManager>();
     }
 
     // 析构函数
     Server::~Server()
     {
-        // if(pool)    pool->stop();
-        close(listenfd_);
+        if(pool_)    pool_->stop();
     }
 
     void Server::InitEventMode(int trigMode)
@@ -75,6 +75,7 @@ namespace xb
 
     void Server::AddClient(int fd)
     {
+        // LOG_DEBUG(GET_ROOT_LOGGER(), "Add Client!");
         struct sockaddr_in client_addr{0};
         socklen_t len = sizeof(client_addr);
         do
@@ -93,9 +94,13 @@ namespace xb
             // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Add Client : [%d]", clientfd);
             users_[clientfd].init(clientfd, client_addr);
             if(!timer_list_.count(clientfd))
-                timer_list_[clientfd] = timer->addTimer(timeoutMs, std::bind(&Server::CloseConn, this, &users_[clientfd]), false);
-            epoller_->AddFd(clientfd, EPOLLIN | connEvent_);
+                timer_list_[clientfd] = timer_->addTimer(timeoutMs, std::bind(&Server::CloseConn, this, &users_[clientfd]), false);
+            // epoller_->AddFd(clientfd, EPOLLIN | connEvent_);
             setnonblocking(clientfd);
+            IOEventLoop::ptr loop = pool_->getOneLoopFromPool();
+            users_[clientfd].setLoop(loop);
+            LoopAddEvent(&users_[clientfd], true);
+            
         } while (listenEvent_ & EPOLLET);
     }
 
@@ -109,7 +114,7 @@ namespace xb
         // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Read Request : [%d]  [%d]  [%d]", client->GetFd(), ret, readErrno);
         if (ret <= 0 && readErrno != EAGAIN)
         {
-            LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
+            // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
             CloseConn(client);
             return;
         }
@@ -142,7 +147,8 @@ namespace xb
                 /* 继续传输 */
                 // LOG_FMT_INFO(GET_ROOT_LOGGER(), " 继续传输 %d ", client->GetFd());
                 // pool->AddTask(std::bind(&Server::SendReponse, this, client));
-                epoller_->ModFd(client->GetFd(), EPOLLOUT | connEvent_);
+                // epoller_->ModFd(client->GetFd(), EPOLLOUT | connEvent_);
+                LoopModEvent(client, false);
                 return;
             }
         }
@@ -150,31 +156,18 @@ namespace xb
         CloseConn(client);
     }
 
-    void Server::DealRead(HttpConnection* client)
-    {
-        timer_list_[client->GetFd()]->reset(timeoutMs, true);
-        // pool->AddTask(std::bind(&Server::ReadRequest, this, client));
-        schedule->addTask(std::bind(&Server::ReadRequest, this, client));
-    }
-
-    void Server::DealWrite(HttpConnection* client)
-    {
-        timer_list_[client->GetFd()]->reset(timeoutMs, true);
-        // pool->AddTask(std::bind(&Server::SendReponse, this, client));
-        schedule->addTask(std::bind(&Server::SendReponse, this, client));
-    }
-
     void Server::OnProcess(HttpConnection *client)
     {
         if (client->process())
         {
-            //            LOG_FMT_INFO(GET_ROOT_LOGGER(), "Process WRITE : [%d]", client->GetFd());
-            epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
+            // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Process WRITE : [%d]", client->GetFd());
+            // epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLOUT);
+            LoopModEvent(client, false);
         }
         else
         {
-            //            LOG_FMT_INFO(GET_ROOT_LOGGER(), "Process READ : [%d]", client->GetFd());
-            epoller_->ModFd(client->GetFd(), connEvent_ | EPOLLIN);
+            // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Process READ : [%d]", client->GetFd());
+            LoopModEvent(client, true);
         }
     }
 
@@ -194,117 +187,112 @@ namespace xb
     {
         assert(client->GetFd());
         // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
-        epoller_->DelFd(client->GetFd());
+        
         client->Close();
-        // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
+        LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
+    }
+
+    void Server::LoopAddEvent(HttpConnection *client, bool is_read)
+    {
+        IOEventLoop::ptr loop = client->getLoop();
+        int fd = client->GetFd();
+        IOEvent::ptr event = loop->getFdEvent(fd);
+        if(is_read) 
+        {
+            // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Add Event [%d] READ To [%d]", fd, loop->getEpollFd());
+            event->enableReading();
+            event->setReadEventHandler(std::bind(&Server::ReadRequest, this, client));
+        }
+        else
+        {
+            // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Add Event [%d] WRITE To [%d]", fd, loop->getEpollFd());
+            event->enableWriting();
+            event->setWriteEventHandler(std::bind(&Server::SendReponse, this, client));
+        }
+        
+        loop->AddEvent(event);
+    }
+
+    void Server::LoopModEvent(HttpConnection *client, bool is_read)
+    {
+        IOEventLoop::ptr loop = client->getLoop();
+        int fd = client->GetFd();
+        IOEvent::ptr event = std::make_shared<IOEvent>(fd);
+        if(is_read)
+        {
+            // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Add Event [%d] READ To [%d]", fd, loop->getEpollFd());
+            event->enableReading();
+            event->setReadEventHandler(std::bind(&Server::ReadRequest, this, client));
+        }
+        else
+        {
+            // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Add Event [%d] WRITE To [%d]", fd, loop->getEpollFd());
+            event->enableWriting();
+            event->setWriteEventHandler(std::bind(&Server::SendReponse, this, client));
+        }
+
+        loop->ModEvent(event);
     }
 
     // 启动服务器
     void Server::process()
     {
-        std::vector<std::function<void()>> timers;
-        while (true)
-        {
-            uint64_t timeout = timer->getNextTimer();
-            // LOG_INFO(GET_ROOT_LOGGER(), "epoll wait");
-            int rt = epoller_->Wait(timeout);
-            timer->listExpiredCb(timers); // 获取超时任务
-            // LOG_FMT_INFO(GET_ROOT_LOGGER(), "epoll wait: [%d]", timers.size());
-            for(auto &it : timers)
-            {
-                // pool->AddTask(it); // 函数添加到调度器中
-                schedule->addTask(it);
-            }
-            timers.clear();
-            for(int i = 0; i < rt; i++)
-            {
-                /* 处理事件 */
-                int fd = epoller_->GetEventFd(i);
-                // LOG_FMT_INFO(GET_ROOT_LOGGER(), "epoll wait : [%d]", fd);
-                uint32_t events = epoller_->GetEvents(i);
-                if(fd == listenfd_) {
-                    AddClient(listenfd_);
-                }
-                else if(events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
-                    assert(users_.count(fd) > 0);
-                    CloseConn(&users_[fd]);
-                }
-                else if(events & EPOLLIN) {
-                    // LOG_FMT_INFO(GET_ROOT_LOGGER(), "EPOLL READ : [%d]", fd);
-                    assert(users_.count(fd) > 0);
-                    DealRead(&users_[fd]);
-                }
-                else if(events & EPOLLOUT) {
-                    assert(users_.count(fd) > 0);
-                    // LOG_FMT_INFO(GET_ROOT_LOGGER(), "EPOLL WRITE : [%d]", fd);
-                    DealWrite(&users_[fd]);
-                } else {
-                    LOG_ERROR(GET_ROOT_LOGGER(), "Unexpected event");
-                }
-            }
-        }
+        InitSocket();
+        // io_manager_->addEvent(listenfd_, FdEventType::READ, std::bind(&Server::AddClient, this, listenfd_));
+        // std::vector<std::function<void()>> timers;
+        // while (true)
+        // {
+        //     uint64_t timeout = timer->getNextTimer();
+        //     // LOG_INFO(GET_ROOT_LOGGER(), "epoll wait");
+        //     int rt = epoller_->Wait(timeout);
+        //     timer->listExpiredCb(timers); // 获取超时任务
+        //     // LOG_FMT_INFO(GET_ROOT_LOGGER(), "epoll wait: [%d]", timers.size());
+        //     for(auto &it : timers)
+        //     {
+        //         // pool->AddTask(it); // 函数添加到调度器中
+        //         schedule->addTask(it);
+        //     }
+        //     timers.clear();
+        //     for(int i = 0; i < rt; i++)
+        //     {
+        //         /* 处理事件 */
+        //         int fd = epoller_->GetEventFd(i);
+        //         // LOG_FMT_INFO(GET_ROOT_LOGGER(), "epoll wait : [%d]", fd);
+        //         uint32_t events = epoller_->GetEvents(i);
+        //         if(fd == listenfd_) {
+        //             AddClient(listenfd_);
+        //         }
+        //         else if(events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+        //             assert(users_.count(fd) > 0);
+        //             CloseConn(&users_[fd]);
+        //         }
+        //         else if(events & EPOLLIN) {
+        //             // LOG_FMT_INFO(GET_ROOT_LOGGER(), "EPOLL READ : [%d]", fd);
+        //             assert(users_.count(fd) > 0);
+        //             DealRead(&users_[fd]);
+        //         }
+        //         else if(events & EPOLLOUT) {
+        //             assert(users_.count(fd) > 0);
+        //             // LOG_FMT_INFO(GET_ROOT_LOGGER(), "EPOLL WRITE : [%d]", fd);
+        //             DealWrite(&users_[fd]);
+        //         } else {
+        //             LOG_ERROR(GET_ROOT_LOGGER(), "Unexpected event");
+        //         }
+        //     }
+        // }
     }
 
     void Server::InitSocket()
     {
-        struct linger optLinger = {0};
-        if (openLinger_)
-        {
-            /* 优雅关闭: 直到所剩数据发送完毕或超时 */
-            optLinger.l_onoff = 1;
-            optLinger.l_linger = 1;
-        }
-        if ((listenfd_ = socket(PF_INET, SOCK_STREAM, 0)) < 0) // 创建套接字
-        {
-            LOG_DEBUG(GET_ROOT_LOGGER(), "socket create failure");
-        }
-        /**
-         * setsockopt选项
-         * SO_REUSEADDR     避免TIME_WAIT状态
-         * SO_RCVBUF SO_SNDBUF  接收缓冲区和发送缓冲区大小
-         * SO_RCVLOWAT SO_SNDLOWAT  接收缓冲区和发送缓冲区低水位标志
-         */
-        int ret = setsockopt(listenfd_, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
-        if (ret < 0)
-        {
-            close(listenfd_);
-            return;
-        }
 
-        int optval = 1;
-        /* 端口复用 */
-        /* 只有最后一个套接字会正常接收数据。 */
-        ret = setsockopt(listenfd_, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
-        if (ret == -1)
-        {
-            close(listenfd_);
-            return;
-        }
+        socket_->Bind(address_);
 
-        struct sockaddr_in addr = {0};
-        memset(&addr, 0, sizeof(addr));
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(port_);
-        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        socket_->Listen();
 
-        if (bind(listenfd_, (struct sockaddr *)(&addr), sizeof(addr)) < 0)
-        {
-            LOG_DEBUG(GET_ROOT_LOGGER(), "socket bing failure");
-        }
-        if (listen(listenfd_, 6) < 0)
-        {
-            LOG_DEBUG(GET_ROOT_LOGGER(), "socket listen failure");
-        }
-        ret = epoller_->AddFd(listenfd_, listenEvent_ | EPOLLIN);
-        if (ret == 0)
-        {
-            LOG_ERROR(GET_ROOT_LOGGER(), "Add listen error!");
-            close(listenfd_);
-            return;
-        }
-        setnonblocking(listenfd_);
-        LOG_FMT_INFO(GET_ROOT_LOGGER(), "Server port:%d", port_);
-        return;
+        IOEvent::ptr event = std::make_shared<IOEvent>(socket_->getSocketFd());
+        event->setReadEventHandler(std::bind(&Server::AddClient, this, socket_->getSocketFd()));
+        event->enableReading();
+        loop_->AddEvent(event);
     }
 
 } // namespace xb

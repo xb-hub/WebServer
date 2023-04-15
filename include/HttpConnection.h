@@ -10,6 +10,7 @@
 #include "HttpRequest.h"
 #include "HttpResponse.h"
 #include "Log.h"
+#include <IOEventLoop.h>
 
 namespace xb
 {
@@ -30,6 +31,9 @@ public:
     int GetFd() const;
 
     int GetPort() const;
+
+    void setLoop(IOEventLoop::ptr loop) { loop_ = loop; }
+    IOEventLoop::ptr getLoop() const { return loop_; }
 
     const char* GetIP() const;
     
@@ -64,6 +68,8 @@ private:
 
     HttpRequest request_;
     HttpResponse response_;
+
+    IOEventLoop::ptr loop_;
 };
 
 } // namespace xb

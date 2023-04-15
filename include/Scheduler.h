@@ -7,6 +7,7 @@
 #include "Thread.h"
 #include "Log.h"
 #include "Coroutine.h"
+#include "Epoll.h"
 
 namespace xb
 {
@@ -140,6 +141,8 @@ namespace xb
         Coroutine::ptr root_routine_;
 
         bool running_;
+
+        Epoll epoller_;
 
         static thread_local Coroutine *current_root_routine_;
         static thread_local Scheduler *current_schedule_;

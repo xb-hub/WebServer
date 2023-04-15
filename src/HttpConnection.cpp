@@ -116,7 +116,7 @@ bool HttpConnection::process() {
         iov_[1].iov_len = response_.FileLen();
         iovCnt_ = 2;
     }
-//    LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "filesize:%d, %d  to %d", response_.FileLen() , iovCnt_, ToWriteBytes());
+//    LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "file:\n %s", response_.File());
     return true;
 }
 

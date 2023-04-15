@@ -12,11 +12,10 @@ namespace xb
 
     // 构造函数初始化
     ThreadPool::ThreadPool(const std::string &name)
-        : TASK_NUM(100),
-          is_running(false),
-          mutex_(),
-          take_cond_(mutex_),
-          add_cond_(mutex_),
+        : is_running(false),
+        //   mutex_(),
+        //   take_cond_(mutex_),
+        //   add_cond_(mutex_),
           name_(name)
     {
     }
@@ -35,7 +34,9 @@ namespace xb
         // 在线程池内创建线程
         for (int i = 0; i < thread_num; i++)
         {
-            thread_pool.emplace_back(new Thread(name_ + std::to_string(i + 1), std::bind(&ThreadPool::threadfun, this)));
+            std::shared_ptr<IOEventLoop> loop = std::make_shared<IOEventLoop>();
+            thread_pool.emplace_back(std::make_unique<Thread>(name_ + std::to_string(i + 1), std::bind(&IOEventLoop::run, loop.get())));
+            event_pool.emplace_back(loop);
             thread_pool[i]->start();
         }
     }
@@ -51,60 +52,70 @@ namespace xb
         }
     }
 
-    // 添加任务到任务队列
-    void ThreadPool::AddTask(const Task &task)
+    IOEventLoop::ptr ThreadPool::getOneLoopFromPool()
     {
-        MutexLockGuard lock(mutex_);
-        while (task_queue.size() >= TASK_NUM && is_running)
-            add_cond_.wait();
-#ifdef _DEBUG_
-        std::cout << task_queue.size() << std::endl;
-#endif
-        task_queue.push_back(task);
-        take_cond_.notifyAll();
-    }
-
-    // 从任务队列中提取任务
-    ThreadPool::Task ThreadPool::TakeTask()
-    {
-        // #ifdef _DEBUG_
-        //     std::cout << "take task!" << std::endl;
-        // #endif
-        MutexLockGuard lock(mutex_);
-        while (task_queue.empty() && is_running)
-            take_cond_.wait();
-#ifdef _DEBUG_
-        std::cout << task_queue.size() << std::endl;
-#endif
-        Task task = task_queue.front();
-        task_queue.pop_front();
-        add_cond_.notifyAll();
-        return task;
-    }
-
-    // 获取当前任务队列中任务数
-    size_t ThreadPool::getSize()
-    {
-        MutexLockGuard lock(mutex_);
-        return task_queue.size();
-    }
-
-    // 线程函数，负责执行任务
-    void ThreadPool::threadfun()
-    {
-        while (is_running)
+        if(thread_pool.empty())
         {
-            ThreadPool::Task task = TakeTask(); // 获取任务
-            if (!task)
-            {
-#ifdef _DEBUG_
-                std::cout << "no task" << std::endl;
-#endif
-                continue;
-            }
-            task(); // 执行任务
+
         }
-        return;
+        loop_index_ = loop_index_ + 1 >= thread_pool.size() ? 0 : loop_index_ + 1;
+        return event_pool[loop_index_];
     }
+
+//     // 添加任务到任务队列
+//     void ThreadPool::AddTask(const Task &task)
+//     {
+//         MutexLockGuard lock(mutex_);
+//         while (task_queue.size() >= TASK_NUM && is_running)
+//             add_cond_.wait();
+// #ifdef _DEBUG_
+//         std::cout << task_queue.size() << std::endl;
+// #endif
+//         task_queue.push_back(task);
+//         take_cond_.notifyAll();
+//     }
+
+//     // 从任务队列中提取任务
+//     ThreadPool::Task ThreadPool::TakeTask()
+//     {
+//         // #ifdef _DEBUG_
+//         //     std::cout << "take task!" << std::endl;
+//         // #endif
+//         MutexLockGuard lock(mutex_);
+//         while (task_queue.empty() && is_running)
+//             take_cond_.wait();
+// #ifdef _DEBUG_
+//         std::cout << task_queue.size() << std::endl;
+// #endif
+//         Task task = task_queue.front();
+//         task_queue.pop_front();
+//         add_cond_.notifyAll();
+//         return task;
+//     }
+
+//     // 获取当前任务队列中任务数
+//     size_t ThreadPool::getSize()
+//     {
+//         MutexLockGuard lock(mutex_);
+//         return task_queue.size();
+//     }
+
+//     // 线程函数，负责执行任务
+//     void ThreadPool::threadfun()
+//     {
+//         while (is_running)
+//         {
+//             ThreadPool::Task task = TakeTask(); // 获取任务
+//             if (!task)
+//             {
+// #ifdef _DEBUG_
+//                 std::cout << "no task" << std::endl;
+// #endif
+//                 continue;
+//             }
+//             task(); // 执行任务
+//         }
+//         return;
+//     }
 
 } // namespace xb

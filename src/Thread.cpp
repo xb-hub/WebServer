@@ -46,13 +46,14 @@ namespace xb
         }
     }
 
-    Thread::Thread(const std::string &name, std::function<void()> func) : name_(name),
-                                                                          func_(std::move(func)),
-                                                                          started_(false),
-                                                                          join_(false),
-                                                                          threadId_(0),
-                                                                          tid_(0),
-                                                                          latch_(1)
+    Thread::Thread(const std::string &name, std::function<void()> func)
+        : name_(name),
+          func_(std::move(func)),
+          started_(false),
+          join_(false),
+          threadId_(0),
+          tid_(0),
+          latch_(1)
     {
     }
 

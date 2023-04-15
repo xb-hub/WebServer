@@ -4,26 +4,20 @@
 #include <fstream>
 #include <string.h>
 #include <cstdlib>
-#include <pthread.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdint.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unordered_map>
-#include <memory>
-#include <sys/epoll.h>
 #include <fcntl.h>
 #include <thread>
 #include "Timer.h"
 #include "ThreadPool.h"
 #include "Scheduler.h"
+#include "IOEventLoop.h"
 #include "HttpConnection.h"
 #include "Log.h"
-#include "epoller.h"
 #include "util.h"
+#include "Socket.h"
 
 namespace xb
 {
@@ -37,8 +31,6 @@ namespace xb
 
     private:
         std::string root_; // 服务器文件根目录
-        int listenfd_;     // 服务器套接字
-        int port_;         // 端口
         bool isClose_;
         bool openLinger_;
         uint64_t timeoutMs;
@@ -46,14 +38,19 @@ namespace xb
         uint32_t listenEvent_;
         uint32_t connEvent_;
 
-        ThreadPool::ptr pool;
-        Scheduler::unptr schedule;
-        TimerManager::ptr timer;
+        ThreadPool::ptr pool_;
+        Scheduler::unptr schedule_;
+        TimerManager::ptr timer_;
+        IOEventLoop::ptr loop_;
+        Socket::ptr socket_;
+        Address address_;
 
     public:
         void process();
 
         static int setnonblocking(int fd);
+
+        IOEventLoop* getLoop() const { return loop_.get(); }
 
         // bool Server::stopping(uint64_t &timeout);
 
@@ -65,17 +62,16 @@ namespace xb
         void SendReponse(HttpConnection* client);
         void AddClient(int fd);
 
-        void DealRead(HttpConnection* client);
-        void DealWrite(HttpConnection* client);
-
         void SendError(int fd, const char*info);
         void CloseConn(HttpConnection *client);
 
         void OnProcess(HttpConnection* client);
 
-        static const int MAX_FD = 65536;
+        void LoopAddEvent(HttpConnection *client, bool is_read);
+        void LoopModEvent(HttpConnection *client, bool is_read);
+        void LoopDelEvent(HttpConnection *client, bool is_read);
 
-        std::unique_ptr<Epoller> epoller_;
+        static const int MAX_FD = 65536;
 
         std::unordered_map<int, HttpConnection> users_;
         std::unordered_map<int, Timer::ptr> timer_list_;

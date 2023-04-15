@@ -65,9 +65,10 @@ namespace xb
             {
                 break;
             }
+//            LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "parse http : [%d]", buff.ReadableBytes());
             buff.RetrieveUntil(lineEnd + 2);
         }
-    //    LOG_FMT_DEBUG(GET_ROOT_LOGGER(),"[%s], [%s], [%s]", method_.c_str(), path_.c_str(), version_.c_str());
+        // LOG_FMT_DEBUG(GET_ROOT_LOGGER(),"[%s], [%s], [%s]", method_.c_str(), path_.c_str(), version_.c_str());
         return true;
     }
 

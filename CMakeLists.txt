@@ -12,16 +12,17 @@ include_directories(
         ${YAML_CPP_INCLUDE_DIRS}
 )
 
-add_compile_options(-Wall -g -std=c++17)
+add_compile_options(-std=c++20 -pthread -g  -ggdb -O0 -Wall -fstack-protector-all -march=native -fnon-call-exceptions)
 
 set(TEST_LIST src/Coroutine.cpp src/Log.cpp
 src/Scheduler.cpp src/Thread.cpp src/Timer.cpp src/util.cpp 
 src/ThreadPool.cpp)
 
 set(SOURCE_LIST src/Server.cpp src/ThreadPool.cpp src/sqlconnpool.cpp 
-src/Timer.cpp src/Thread.cpp src/HttpConnection.cpp
-src/Scheduler.cpp src/Coroutine.cpp src/Buffer.cpp src/epoller.cpp 
-src/Log.cpp src/util.cpp src/HttpResponse.cpp src/HttpRequest.cpp)
+src/Timer.cpp src/Thread.cpp src/HttpConnection.cpp src/IOEventManager.cpp
+src/Scheduler.cpp src/Coroutine.cpp src/Buffer.cpp src/Epoll.cpp 
+src/Log.cpp src/util.cpp src/HttpResponse.cpp src/HttpRequest.cpp 
+src/IOEvent.cpp src/IOEventLoop.cpp src/IOEventManager.cpp src/Socket.cpp)
 #add_executable(threadpool_test threadpool_test.cpp src/ThreadPool.cpp)
 #target_link_libraries(threadpool_test Threads::Threads)
 #add_executable(client_test client_test.cpp)
