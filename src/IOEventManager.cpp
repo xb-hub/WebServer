@@ -99,7 +99,8 @@ namespace xb
                 {
                     // LOG_FMT_INFO(GET_ROOT_LOGGER(), "epoll deal [%d]: [%d]", epoll_.getEpollFd(), fd);
                     // ioEvent->triggerEvent(ioEvent->getEventType());
-                    ioEvent->triggerEvent(event_type);
+                    if(event_type & EPOLLIN)    ioEvent->triggerEvent(EPOLLIN);
+                    if(event_type & EPOLLOUT)    ioEvent->triggerEvent(EPOLLOUT);
                 }
                 else
                 {

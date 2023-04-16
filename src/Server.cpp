@@ -111,7 +111,7 @@ namespace xb
         size_t ret = -1;
         int readErrno = 0;
         ret = client->read(&readErrno);
-        // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Read Request : [%d]  [%d]  [%d]", client->getLoop()->getEpollFd(), client->GetFd(), ret);
+        // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Read Request : [%d]  [%d]  [%s]", client->getLoop()->getEpollFd(), client->GetFd(), strerror(readErrno));
         if (ret <= 0 && readErrno != EAGAIN && readErrno != EWOULDBLOCK)
         {
             // LOG_FMT_INFO(GET_ROOT_LOGGER(), "ReadRequest[%d] quit!", client->GetFd());
@@ -129,7 +129,7 @@ namespace xb
         int ret = -1;
         int writeErrno = 0;
         ret = client->write(&writeErrno);
-        // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client ERROR!  [%d]", client->ToWriteBytes());
+        // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client Write!  [%d]", client->ToWriteBytes());
         if (client->ToWriteBytes() == 0)
         {
             /* 传输完成 */
@@ -148,7 +148,7 @@ namespace xb
                 //  LOG_FMT_INFO(GET_ROOT_LOGGER(), " 继续传输 %d ", client->GetFd());
                 // pool->AddTask(std::bind(&Server::SendReponse, this, client));
                 // epoller_->ModFd(client->GetFd(), EPOLLOUT | connEvent_);
-                LoopModEvent(client, false);
+                // LoopModEvent(client, false);
                 return;
             }
         }
