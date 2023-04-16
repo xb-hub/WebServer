@@ -57,7 +57,7 @@ namespace xb
         };
 
     public:
-        Socket(int family, int type, int protocol = 0, bool openLinger_ = true);
+        Socket(int family, int type, int protocol = 0);
         ~Socket();
 
         static Socket::ptr createTcpSocket();

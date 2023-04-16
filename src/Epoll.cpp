@@ -7,7 +7,7 @@ namespace xb
         : epollFd_(epoll_create(512)),
           events_list_(maxEvent)
     {
-        LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "CREATE EPOLL [%d]", epollFd_);
+//        LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "CREATE EPOLL [%d]", epollFd_);
         assert(epollFd_ >= 0 && events_list_.size() > 0);
     }
 

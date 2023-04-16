@@ -108,13 +108,13 @@ namespace xb
     {
         timer_list_[client->GetFd()]->reset(timeoutMs, false);
         assert(client);
-        int ret = -1;
+        size_t ret = -1;
         int readErrno = 0;
         ret = client->read(&readErrno);
-        // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Read Request : [%d]  [%d]  [%d]", client->GetFd(), ret, readErrno);
-        if (ret <= 0 && readErrno != EAGAIN)
+        // LOG_FMT_DEBUG(GET_ROOT_LOGGER(), "Read Request : [%d]  [%d]  [%d]", client->getLoop()->getEpollFd(), client->GetFd(), ret);
+        if (ret <= 0 && readErrno != EAGAIN && readErrno != EWOULDBLOCK)
         {
-            // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
+            // LOG_FMT_INFO(GET_ROOT_LOGGER(), "ReadRequest[%d] quit!", client->GetFd());
             CloseConn(client);
             return;
         }
@@ -142,17 +142,17 @@ namespace xb
         }
         else if (ret < 0)
         {
-            if (writeErrno == EAGAIN)
+            if (writeErrno == EAGAIN || writeErrno == EWOULDBLOCK)
             {
                 /* 继续传输 */
-                // LOG_FMT_INFO(GET_ROOT_LOGGER(), " 继续传输 %d ", client->GetFd());
+                //  LOG_FMT_INFO(GET_ROOT_LOGGER(), " 继续传输 %d ", client->GetFd());
                 // pool->AddTask(std::bind(&Server::SendReponse, this, client));
                 // epoller_->ModFd(client->GetFd(), EPOLLOUT | connEvent_);
                 LoopModEvent(client, false);
                 return;
             }
         }
-        // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d   %d] quit!", client->GetFd(), ret);
+//        LOG_FMT_INFO(GET_ROOT_LOGGER(), "SendReponse[%d   %d] quit!", client->GetFd(), ret);
         CloseConn(client);
     }
 
@@ -189,7 +189,7 @@ namespace xb
         // LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
         
         client->Close();
-        LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
+//        LOG_FMT_INFO(GET_ROOT_LOGGER(), "Client[%d] quit!", client->GetFd());
     }
 
     void Server::LoopAddEvent(HttpConnection *client, bool is_read)
@@ -284,10 +284,30 @@ namespace xb
 
     void Server::InitSocket()
     {
+        struct linger optLinger = {0};
+        if (openLinger_)
+        {
+            /* 优雅关闭: 直到所剩数据发送完毕或超时 */
+            optLinger.l_onoff = 1;
+            optLinger.l_linger = 1;
+        }
+        int listenfd = socket_->getSocketFd();
+        int ret = setsockopt(listenfd, SOL_SOCKET, SO_LINGER, &optLinger, sizeof(optLinger));
+        int optval = 1;
+        /* 端口复用 */
+        /* 只有最后一个套接字会正常接收数据。 */
+        ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int));
+        if(ret == -1) {
+            LOG_ERROR(GET_ROOT_LOGGER(), "set socket setsockopt error !");
+            close(listenfd);
+            return;
+        }
 
         socket_->Bind(address_);
 
         socket_->Listen();
+
+        setnonblocking(listenfd);
 
         IOEvent::ptr event = std::make_shared<IOEvent>(socket_->getSocketFd());
         event->setReadEventHandler(std::bind(&Server::AddClient, this, socket_->getSocketFd()));

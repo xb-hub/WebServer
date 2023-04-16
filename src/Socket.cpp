@@ -88,17 +88,9 @@ namespace xb
         return os;
     }
     
-    Socket::Socket(int family, int type, int protocol, bool openLinger_)
-        : sock_fd_(socket(family, type | SOCK_NONBLOCK | SOCK_CLOEXEC, protocol))
+    Socket::Socket(int family, int type, int protocol)
+        : sock_fd_(socket(family, type, protocol))
     {
-        struct linger optLinger = {0};
-        if (openLinger_)
-        {
-            /* 优雅关闭: 直到所剩数据发送完毕或超时 */
-            optLinger.l_onoff = 1;
-            optLinger.l_linger = 1;
-        }
-        setsockopt(sock_fd_, SOL_SOCKET, SO_REUSEADDR, &optLinger, sizeof(optLinger));
     }
 
     Socket::~Socket()

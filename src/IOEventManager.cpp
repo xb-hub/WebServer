@@ -93,11 +93,13 @@ namespace xb
             for(size_t i = 0; i < rt; i++)
             {
                 int fd = epoll_.GetEventFd(i);
+                uint32_t event_type = epoll_.GetEvents(i);
                 std::shared_ptr<IOEvent> ioEvent = fd_event_list_[fd];
                 if(ioEvent)
                 {
                     // LOG_FMT_INFO(GET_ROOT_LOGGER(), "epoll deal [%d]: [%d]", epoll_.getEpollFd(), fd);
-                    ioEvent->triggerEvent(ioEvent->getEventType());
+                    // ioEvent->triggerEvent(ioEvent->getEventType());
+                    ioEvent->triggerEvent(event_type);
                 }
                 else
                 {

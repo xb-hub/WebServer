@@ -41,6 +41,7 @@ namespace xb
 
     void IOEventLoop::run()
     {
+        LOG_DEBUG(GET_ROOT_LOGGER(), "Thread Run");
         while(true)
         {
             iomanager_->waitEventAndHandler();

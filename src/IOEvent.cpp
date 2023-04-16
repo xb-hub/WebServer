@@ -5,7 +5,7 @@ namespace xb
 {
     IOEvent::IOEvent(int fd)
         : eventfd_(fd),
-          event_type_(0x0)
+          event_type_(EPOLLET)
     {
 
     }

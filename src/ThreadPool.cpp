@@ -11,12 +11,10 @@ namespace xb
 {
 
     // 构造函数初始化
-    ThreadPool::ThreadPool(const std::string &name)
+    ThreadPool::ThreadPool(int thread_num)
         : is_running(false),
-        //   mutex_(),
-        //   take_cond_(mutex_),
-        //   add_cond_(mutex_),
-          name_(name)
+          m_thread_num(thread_num),
+          m_latch(thread_num)
     {
     }
 
@@ -26,18 +24,18 @@ namespace xb
         stop();
     }
 
-    void ThreadPool::start(int thread_num)
+    void ThreadPool::start()
     {
-        assert(thread_pool.empty());
+        assert(m_thread_pool.empty());
         is_running = true;
-        thread_pool.reserve(thread_num);
+        m_thread_pool.reserve(m_thread_num);
+        m_event_pool.reserve(m_thread_num);
         // 在线程池内创建线程
-        for (int i = 0; i < thread_num; i++)
+        for (int i = 0; i < m_thread_num; i++)
         {
             std::shared_ptr<IOEventLoop> loop = std::make_shared<IOEventLoop>();
-            thread_pool.emplace_back(std::make_unique<Thread>(name_ + std::to_string(i + 1), std::bind(&IOEventLoop::run, loop.get())));
-            event_pool.emplace_back(loop);
-            thread_pool[i]->start();
+            m_thread_pool.emplace_back(std::jthread{std::bind(&IOEventLoop::run, loop.get())});
+            m_event_pool.emplace_back(loop);
         }
     }
 
@@ -46,20 +44,16 @@ namespace xb
         if (!is_running)
             return;
         is_running = false;
-        for (auto &it : thread_pool)
-        {
-            it->join();
-        }
     }
 
     IOEventLoop::ptr ThreadPool::getOneLoopFromPool()
     {
-        if(thread_pool.empty())
+        if(m_thread_pool.empty())
         {
 
         }
-        loop_index_ = loop_index_ + 1 >= thread_pool.size() ? 0 : loop_index_ + 1;
-        return event_pool[loop_index_];
+        m_loop_index = m_loop_index + 1 >= m_thread_pool.size() ? 0 : m_loop_index + 1;
+        return m_event_pool[m_loop_index];
     }
 
 //     // 添加任务到任务队列
