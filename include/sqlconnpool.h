@@ -39,7 +39,7 @@ namespace xb
         int freeCount_;
 
         std::queue<MYSQL *> connQue_;
-        std::mutex mtx_;
+        std::mutex mutex_;
         sem_t semId_;
     };
 

@@ -38,7 +38,7 @@ namespace xb
 
     bool Timer::cancel()
     {
-        MutexLockGuard lock(manager_->mutex_);
+        std::scoped_lock<std::mutex> lock(manager_->mutex_);
         if (func_)
         {
 
@@ -52,7 +52,8 @@ namespace xb
 
     bool Timer::refresh()
     {
-        MutexLockGuard lock(manager_->mutex_);
+        std::scoped_lock<std::mutex> lock(manager_->mutex_);
+        
         if (!func_)
         {
             return false;
@@ -72,7 +73,7 @@ namespace xb
     {
         if (ms == ms_ && !now)
             return true;
-        MutexLockGuard lock(manager_->mutex_);
+        std::scoped_lock<std::mutex> lock(manager_->mutex_);
         if (!func_)
             return false;
         auto it = manager_->timer_list_.find(shared_from_this());
@@ -108,7 +109,6 @@ namespace xb
     Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> func, bool recurring)
     {
         Timer::ptr timer(new Timer(ms, func, recurring, this));
-        MutexLockGuard lock(mutex_);
         addTimer(timer);
         return timer;
     }
@@ -144,7 +144,7 @@ namespace xb
 
     uint64_t TimerManager::getNextTimer()
     {
-        MutexLockGuard lock(mutex_);
+        std::scoped_lock<std::mutex> lock(mutex_);
         if (timer_list_.empty())
             return ~0ull;
         Timer::ptr time = *timer_list_.begin();
@@ -159,7 +159,7 @@ namespace xb
         uint64_t now_ms = GetCurrentMS();
         std::vector<Timer::ptr> expired;
         {
-            MutexLockGuard lock(mutex_);
+            std::scoped_lock<std::mutex> lock(mutex_);
             if (timer_list_.empty())
                 return;
             bool rollover = detectClockRollover(now_ms);
@@ -208,7 +208,7 @@ namespace xb
 
     bool TimerManager::hasTimer()
     {
-        MutexLockGuard lock(mutex_);
+        std::scoped_lock<std::mutex> lock(mutex_);
         return !timer_list_.empty();
     }
 

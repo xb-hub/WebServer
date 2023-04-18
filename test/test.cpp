@@ -2,12 +2,13 @@
 // Created by 许斌 on 2022/9/5.
 //
 
-#include "Thread.h"
 #include <iostream>
-using namespace xb;
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
-MutexLock mutex_;
-Condition cond_(mutex_);
+std::mutex mutex_;
+std::condition_variable cond_;
 // pthread_mutex_t mutex_;
 // pthread_cond_t cond_;
 int n = 1, count = 0;
@@ -16,16 +17,16 @@ void *consumer(void *)
 {
     while (1)
     {
-        MutexLockGuard lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         //        pthread_mutex_lock(&mutex_);
         while (count <= 0)
         {
-            cond_.wait();
+            cond_.wait(lock);
             //            pthread_cond_wait(&cond_, &mutex_);
         }
         std::cout << ")";
         count--;
-        cond_.notifyAll();
+        cond_.notify_all();
         //        pthread_cond_broadcast(&cond_);
         //        pthread_mutex_unlock(&mutex_);
     }
@@ -35,18 +36,18 @@ void *producer(void *)
 {
     while (1)
     {
-        MutexLockGuard lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         //        pthread_mutex_lock(&mutex_);
         while (count >= n)
         {
-            cond_.wait();
+            cond_.wait(lock);
             //            pthread_cond_wait(&cond_, &mutex_);
         }
         std::cout << "(";
         count++;
         //        pthread_cond_broadcast(&cond_);
         //        pthread_mutex_unlock(&mutex_);
-        cond_.notifyAll();
+        cond_.notify_all();
     }
 }
 

@@ -32,14 +32,15 @@ namespace xb
 
     /*********************** LogEvent ***********************/
     LogEvent::LogEvent(const std::string &filename, int32_t line, uint32_t elapse, uint32_t threadid, uint32_t fiberid,
-                       uint64_t time, const std::string &content, LogLevel::Level level) : m_filename(filename),
-                                                                                           m_line(line),
-                                                                                           m_elapse(elapse),
-                                                                                           m_threadid(threadid),
-                                                                                           m_fiberid(fiberid),
-                                                                                           m_time(time),
-                                                                                           m_content(content),
-                                                                                           m_level(level)
+                       uint64_t time, const std::string &content, LogLevel::Level level)
+        : m_filename(filename),
+          m_line(line),
+          m_elapse(elapse),
+          m_threadid(threadid),
+          m_fiberid(fiberid),
+          m_time(time),
+          m_content(content),
+          m_level(level)
     {
     }
 
@@ -51,16 +52,18 @@ namespace xb
         m_formatter.reset(new LogFormatter(m_formatter_pattern));
     }
 
-    Logger::Logger(const std::string &name, LogLevel::Level level) : m_name(name),
-                                                                     m_level(level),
-                                                                     m_formatter_pattern("[%d] [%p] [%f:%l]%T [%t] %m%n")
+    Logger::Logger(const std::string &name, LogLevel::Level level)
+        : m_name(name),
+          m_level(level),
+          m_formatter_pattern("[%d] [%p] [%f:%l]%T [%t] %m%n")
     {
         m_formatter.reset(new LogFormatter(m_formatter_pattern));
     }
 
-    Logger::Logger(const std::string &name, LogLevel::Level level, const std::string &pattern) : m_name(name),
-                                                                                                 m_level(level),
-                                                                                                 m_formatter_pattern(pattern)
+    Logger::Logger(const std::string &name, LogLevel::Level level, const std::string &pattern)
+        : m_name(name),
+          m_level(level),
+          m_formatter_pattern(pattern)
     {
         m_formatter.reset(new LogFormatter(m_formatter_pattern));
     }
@@ -316,7 +319,7 @@ namespace xb
 
     void __LoggerManager::init()
     {
-        MutexLockGuard lock(m_mutex);
+        std::scoped_lock<std::mutex> lock(m_mutex);
         auto config = Config::LookUp<std::vector<LogConfig>>("logs");
         auto config_log_list = config->getValue();
         for (const auto &log_config : config_log_list)

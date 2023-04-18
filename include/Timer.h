@@ -4,7 +4,6 @@
 #include <memory>
 #include <vector>
 #include <set>
-#include "Thread.h"
 #include "Log.h"
 
 namespace xb
@@ -63,7 +62,7 @@ namespace xb
         Timer::ptr addConditionTimer(uint64_t ms, std::function<void()> func, std::weak_ptr<void> weak_cond, bool recurring = false);
 
     private:
-        MutexLock mutex_;
+        std::mutex mutex_;
         std::set<Timer::ptr, Timer::Comparator> timer_list_;
         // 是否触发onTimerInsertedAtFront
         bool tickle_ = false;

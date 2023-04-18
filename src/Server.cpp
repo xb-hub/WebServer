@@ -106,7 +106,7 @@ namespace xb
 
     void Server::ReadRequest(HttpConnection *client)
     {
-        timer_list_[client->GetFd()]->reset(timeoutMs, false);
+        // timer_list_[client->GetFd()]->reset(timeoutMs, false);
         assert(client);
         size_t ret = -1;
         int readErrno = 0;
@@ -123,7 +123,7 @@ namespace xb
 
     void Server::SendReponse(HttpConnection *client)
     {
-        timer_list_[client->GetFd()]->reset(timeoutMs, false);
+        // timer_list_[client->GetFd()]->reset(timeoutMs, false);
         // LOG_DEBUG(GET_ROOT_LOGGER(), "Send Reponse!");
         assert(client);
         int ret = -1;

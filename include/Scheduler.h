@@ -4,10 +4,11 @@
 #include <vector>
 #include <list>
 
-#include "Thread.h"
 #include "Log.h"
 #include "Coroutine.h"
 #include "Epoll.h"
+#include <thread>
+#include <mutex>
 
 namespace xb
 {
@@ -82,7 +83,7 @@ namespace xb
 #endif
             bool is_tickle = false;
             {
-                MutexLockGuard lock(mutex_);
+                std::scoped_lock<std::mutex> lock(mutex_);
                 Task::ptr task = std::make_shared<Task>(std::forward<Executable>(callback));
                 is_tickle = task_list_.empty();
                 if (task->routine_ || task->func_)
@@ -102,7 +103,7 @@ namespace xb
 #endif
             bool is_tickle = false;
             {
-                MutexLockGuard lock(mutex_);
+                std::scoped_lock<std::mutex> lock(mutex_);
                 while (begin != end)
                 {
                     Task::ptr task = std::make_shared<Task>(*begin);
@@ -127,14 +128,14 @@ namespace xb
 
     private:
         std::string name_;
-        MutexLock mutex_;
+        std::mutex mutex_;
 
         size_t exec_thread_num_;
         size_t idle_thread_num_;
 
         pid_t root_threadID_;
 
-        std::vector<Thread::ptr> thread_list_;
+        std::vector<std::jthread> thread_list_;
         std::list<Task::ptr> task_list_;
 
         size_t thread_num_;

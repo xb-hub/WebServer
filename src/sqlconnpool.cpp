@@ -57,7 +57,7 @@ namespace xb
         }
         sem_wait(&semId_);
         {
-            std::lock_guard<std::mutex> locker(mtx_);
+            std::scoped_lock<std::mutex> locker(mutex_);
             sql = connQue_.front();
             connQue_.pop();
         }
@@ -67,14 +67,14 @@ namespace xb
     void SqlConnPool::FreeConn(MYSQL *sql)
     {
         assert(sql);
-        std::lock_guard<std::mutex> locker(mtx_);
+        std::scoped_lock<std::mutex> locker(mutex_);
         connQue_.push(sql);
         sem_post(&semId_);
     }
 
     void SqlConnPool::ClosePool()
     {
-        std::lock_guard<std::mutex> locker(mtx_);
+        std::scoped_lock<std::mutex> locker(mutex_);
         while (!connQue_.empty())
         {
             auto item = connQue_.front();
@@ -86,7 +86,7 @@ namespace xb
 
     int SqlConnPool::GetFreeConnCount()
     {
-        std::lock_guard<std::mutex> locker(mtx_);
+        std::scoped_lock<std::mutex> locker(mutex_);
         return connQue_.size();
     }
 

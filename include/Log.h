@@ -8,7 +8,6 @@
 #include <sstream>
 #include "Singleton.h"
 #include "Config.h"
-#include "Thread.h"
 #include "util.h"
 
 #define GET_ROOT_LOGGER() xb::LoggerManager::getInstance()->getRoot()
@@ -154,7 +153,7 @@ namespace xb
         const std::string m_formatter_pattern;   // 默认格式pattern
         LogFormatter::ptr m_formatter;           // 默认格式
         std::list<LogAppender::ptr> m_appenders; // Appender集合
-        MutexLock mutex_;
+        std::mutex m_mutex;
     };
 
     // 日志输出到控制台
@@ -291,7 +290,7 @@ namespace xb
         void ensureRootLoggerExists();
 
     private:
-        MutexLock m_mutex;
+        std::mutex m_mutex;
         std::map<std::string, Logger::ptr> m_logger_map;
     };
 

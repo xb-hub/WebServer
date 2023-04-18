@@ -13,7 +13,9 @@
 #include <vector>
 #include <list>
 #include <functional>
-#include "Thread.h"
+#include <mutex>
+#include <thread>
+#include <shared_mutex>
 
 namespace xb
 {
@@ -234,7 +236,7 @@ namespace xb
         void setValue(const T &value)
         {
             {
-                ReadLockGraud lock(rw_lock_);
+                std::shared_lock<std::shared_mutex> lock(rw_lock_);
                 if (value == value_)
                     return;
                 T old_value = value_;
@@ -243,7 +245,7 @@ namespace xb
                     it.second(old_value, value);
                 }
             }
-            WriteLockGraud lockGraud(rw_lock_);
+            std::scoped_lock<std::shared_mutex> lockGraud(rw_lock_);
             value_ = value;
         }
 
@@ -284,20 +286,20 @@ namespace xb
         uint64_t addListener(modifyCallback cb)
         {
             static uint64_t index = 0;
-            WriteLockGraud lock(rw_lock_);
+            std::scoped_lock<std::shared_mutex> lock(rw_lock_);
             callback_map_[++index] = cb;
             return index;
         }
 
         void delListener(uint64_t key)
         {
-            WriteLockGraud lock(rw_lock_);
+            std::scoped_lock<std::shared_mutex> lock(rw_lock_);
             callback_map_.erase(key);
         }
 
         modifyCallback getListener(uint64_t key)
         {
-            ReadLockGraud lock(rw_lock_);
+            std::shared_lock<std::shared_mutex> lock(rw_lock_);
             auto iter = callback_map_.find(key);
             if (iter == callback_map_.end())
                 return nullptr;
@@ -306,14 +308,14 @@ namespace xb
 
         void clearListener()
         {
-            WriteLockGraud lock(rw_lock_);
+            std::scoped_lock<std::shared_mutex> lock(rw_lock_);
             callback_map_.clear();
         }
 
     private:
         T value_;
         std::map<uint64_t, modifyCallback> callback_map_;
-        RWLock rw_lock_;
+        std::shared_mutex rw_lock_;
     };
 
     class Config
@@ -356,7 +358,7 @@ namespace xb
                 throw std::invalid_argument(name);
             }
             auto tmp = std::make_shared<ConfigVar<T>>(name, description, value);
-            WriteLockGraud lock(getRWLock());
+            std::scoped_lock<std::shared_mutex> lock(getRWLock());
             data[name] = tmp;
             return tmp;
         }
@@ -385,7 +387,7 @@ namespace xb
 
         static void Visit(std::function<void(ConfigVarBase::ptr)> cb)
         {
-            ReadLockGraud lock(getRWLock());
+            std::shared_lock<std::shared_mutex> lock(getRWLock());
             ConfigVarMap &m = getData();
             for (auto it = m.begin();
                  it != m.end(); ++it)
@@ -428,9 +430,9 @@ namespace xb
             return data;
         }
 
-        static RWLock &getRWLock()
+        static std::shared_mutex &getRWLock()
         {
-            static RWLock rw_lock;
+            static std::shared_mutex rw_lock;
             return rw_lock;
         }
     };

@@ -76,8 +76,7 @@ namespace xb
         assert(thread_list_.empty());
         for (size_t i = 0; i < thread_num_; i++)
         {
-            thread_list_.emplace_back(std::make_shared<Thread>(std::to_string(i), std::bind(&Scheduler::run, this)));
-            thread_list_[i]->start();
+            thread_list_.emplace_back(std::jthread(std::bind(&Scheduler::run, this)));
         }
     }
 
@@ -110,22 +109,11 @@ namespace xb
                 root_routine_->call();
             }
         }
-
-        std::vector<Thread::ptr> thrs;
-        {
-            MutexLockGuard lock(mutex_);
-            thrs.swap(thread_list_);
-        }
-
-        for (auto &t : thrs)
-        {
-            t->join();
-        }
     }
 
     bool Scheduler::CanStop()
     {
-        MutexLockGuard lock(mutex_);
+        std::scoped_lock<std::mutex> lock(mutex_);
         return task_list_.empty() && exec_thread_num_ == 0 && !running_;
     }
 
@@ -168,7 +156,7 @@ namespace xb
             bool is_tickle = false;
             {
                 // 作用域锁
-                MutexLockGuard lock(mutex_);
+                std::scoped_lock<std::mutex> lock(mutex_);
                 auto it = task_list_.begin();
                 while (it != task_list_.end())
                 {

@@ -11,10 +11,10 @@ namespace xb
 {
 
     // 构造函数初始化
-    ThreadPool::ThreadPool(int thread_num)
+    ThreadPool::ThreadPool()
         : is_running(false),
-          m_thread_num(thread_num),
-          m_latch(thread_num)
+          m_thread_num(std::thread::hardware_concurrency()),
+          m_latch(m_thread_num)
     {
     }
 

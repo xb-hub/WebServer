@@ -12,7 +12,6 @@
 #include <vector>
 #include <list>
 #include "Singleton.h"
-#include "Thread.h"
 #include "IOEventLoop.h"
 
 namespace xb
@@ -24,7 +23,7 @@ namespace xb
         using Task = std::function<void()>; // 任务类型
         using ptr = std::shared_ptr<ThreadPool>;
 
-        ThreadPool(int thread_num = 16);
+        ThreadPool();
         ~ThreadPool();
 
         bool is_running;
